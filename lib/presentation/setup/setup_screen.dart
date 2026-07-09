@@ -102,9 +102,10 @@ class _SetupScreenState extends State<SetupScreen>
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AdaptiveNavShell()),
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = t.setupErrorInvalid);
+      debugPrint('XScore setup error: $e'); // TEMP: check debug console
+      setState(() => _errorMessage = '${t.setupErrorInvalid}\n($e)');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
