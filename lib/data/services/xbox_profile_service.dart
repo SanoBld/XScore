@@ -13,7 +13,7 @@ class XboxProfileService {
   }
 
   Future<PlayerProfile> getProfileByGamertag(String gamertag) async {
-    final json = await client.get('${ApiConstants.friendSearch}',
+    final json = await client.get(ApiConstants.friendSearch,
         query: {'gt': gamertag});
     return PlayerProfile.fromAccountJson(json);
   }

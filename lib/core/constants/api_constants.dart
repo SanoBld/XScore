@@ -29,7 +29,6 @@ class ApiConstants {
   static const gameArtCdn = 'https://images-eds.xboxlive.com';
 
   // GitHub self-update
-  // TODO: replace with your repo
   static const latestReleaseUrl =
-      'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO/releases/latest';
+      'https://api.github.com/repos/SanoBld/XScore/releases/latest';
 }

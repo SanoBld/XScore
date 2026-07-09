@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-// Xbox-green branded Material 3 theme
+// Xbox-green branded Material 3 theme, seed color now customizable
 class AppTheme {
   AppTheme._();
 
-  static const _seed = Color(0xFF107C10); // Xbox green
+  static const defaultSeed = Color(0xFF107C10); // Xbox green
 
-  static ThemeData light() => _base(Brightness.light);
-  static ThemeData dark() => _base(Brightness.dark);
+  static ThemeData light([Color? seed]) => _base(Brightness.light, seed);
+  static ThemeData dark([Color? seed]) => _base(Brightness.dark, seed);
 
-  static ThemeData _base(Brightness brightness) {
+  static ThemeData _base(Brightness brightness, Color? seed) {
     final scheme = ColorScheme.fromSeed(
-      seedColor: _seed,
+      seedColor: seed ?? defaultSeed,
       brightness: brightness,
     );
     return ThemeData(

@@ -26,8 +26,9 @@ class XScoreApp extends StatelessWidget {
           return MaterialApp(
             title: 'XScore',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
+            // Accent color: system color or user-picked preset (Settings)
+            theme: AppTheme.light(settings.accentColor),
+            darkTheme: AppTheme.dark(settings.accentColor),
             locale: settings.locale,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

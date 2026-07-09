@@ -16,6 +16,7 @@
         "package_info_plus",
         "provider",
         "shared_preferences",
+        "system_theme",
         "url_launcher"
       ],
       "devDependencies": [
@@ -46,6 +47,14 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "system_theme",
+      "version": "2.3.1",
+      "dependencies": [
+        "flutter",
+        "system_theme_web"
       ]
     },
     {
@@ -251,6 +260,15 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "system_theme_web",
+      "version": "0.0.5",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "web"
       ]
     },
     {

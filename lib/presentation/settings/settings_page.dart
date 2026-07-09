@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/constants/storage_keys.dart';
 import '../providers/settings_provider.dart';
+import '../setup/setup_screen.dart';
 import '../../data/services/update_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -118,7 +119,53 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 24),
 
-          // Notifications section
+          // Accent color section
+          Text('Couleur d\'accent', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Utiliser la couleur du système'),
+            subtitle: const Text('Reprend l\'accent Windows/macOS'),
+            value: settings.useSystemAccent,
+            onChanged: (v) => context.read<SettingsProvider>().setUseSystemAccent(v),
+          ),
+          if (!settings.useSystemAccent)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: accentPresets.map((c) {
+                  final selected = settings.accentColor.toARGB32() == c.toARGB32();
+                  return GestureDetector(
+                    onTap: () => context.read<SettingsProvider>().setAccentColor(c),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: c,
+                        shape: BoxShape.circle,
+                        border: selected
+                            ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2)
+                            : null,
+                      ),
+                      child: selected
+                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            'Redémarre l\'app pour appliquer entièrement la couleur.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 24),
           Text('Notifications', style: Theme.of(context).textTheme.titleMedium),
           if (_prefsLoaded) ...[
             SwitchListTile(
@@ -191,6 +238,43 @@ class _SettingsPageState extends State<SettingsPage> {
                   : null,
               onTap: _checking ? null : _checkUpdate,
             ),
+          ),
+          const SizedBox(height: 24),
+
+          // Logout
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+              side: BorderSide(color: Theme.of(context).colorScheme.error),
+            ),
+            icon: const Icon(Icons.logout),
+            label: const Text('Se déconnecter'),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Se déconnecter ?'),
+                  content: const Text('Ta clé API sera supprimée de l\'appareil.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Annuler')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Se déconnecter')),
+                  ],
+                ),
+              );
+              if (confirm == true && context.mounted) {
+                await context.read<SettingsProvider>().logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const SetupScreen()),
+                    (route) => false,
+                  );
+                }
+              }
+            },
           ),
         ],
       ),

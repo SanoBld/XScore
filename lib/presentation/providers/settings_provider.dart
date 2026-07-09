@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:system_theme/system_theme.dart';
 import '../../core/constants/storage_keys.dart';
+
+// Preset accent colors offered in Settings, besides the system color
+const List<Color> accentPresets = [
+  Color(0xFF107C10), // Xbox green (default)
+  Color(0xFF0078D4), // Blue
+  Color(0xFF8764B8), // Purple
+  Color(0xFFE3008C), // Magenta
+  Color(0xFFD13438), // Red
+  Color(0xFFFF8C00), // Orange
+];
 
 // App-wide settings state: API key, language, theme
 class SettingsProvider extends ChangeNotifier {
@@ -9,12 +20,20 @@ class SettingsProvider extends ChangeNotifier {
 
   String? _apiKey;
   Locale _locale = const Locale('en');
-  ThemeMode _themeMode = ThemeMode.system;
+  final ThemeMode _themeMode = ThemeMode.system;
+  Color? _accentColor; // null = use system accent color
+  bool _useSystemAccent = true;
 
   String? get apiKey => _apiKey;
   Locale get locale => _locale;
   ThemeMode get themeMode => _themeMode;
   bool get hasApiKey => (_apiKey ?? '').isNotEmpty;
+  bool get useSystemAccent => _useSystemAccent;
+
+  // Resolved accent: system color if enabled, else the chosen preset
+  Color get accentColor => _useSystemAccent
+      ? SystemTheme.accentColor.accent
+      : (_accentColor ?? accentPresets.first);
 
   // Load persisted settings at startup
   Future<void> init() async {
@@ -22,6 +41,11 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final lang = prefs.getString(StorageKeys.languageCode);
     if (lang != null) _locale = Locale(lang);
+
+    _useSystemAccent = prefs.getBool('use_system_accent') ?? true;
+    final storedColor = prefs.getInt('accent_color');
+    if (storedColor != null) _accentColor = Color(storedColor);
+
     notifyListeners();
   }
 
@@ -35,6 +59,29 @@ class SettingsProvider extends ChangeNotifier {
     _locale = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(StorageKeys.languageCode, locale.languageCode);
+    notifyListeners();
+  }
+
+  Future<void> setAccentColor(Color color) async {
+    _accentColor = color;
+    _useSystemAccent = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('accent_color', color.toARGB32());
+    await prefs.setBool('use_system_accent', false);
+    notifyListeners();
+  }
+
+  Future<void> setUseSystemAccent(bool value) async {
+    _useSystemAccent = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('use_system_accent', value);
+    notifyListeners();
+  }
+
+  // Clears the API key so the user is sent back to the setup screen
+  Future<void> logout() async {
+    _apiKey = null;
+    await _secureStorage.delete(key: StorageKeys.apiKey);
     notifyListeners();
   }
 }
