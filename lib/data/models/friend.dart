@@ -1,24 +1,26 @@
-// Friend / social connection model
+// Friend / follower entry
 class Friend {
   final String xuid;
   final String gamertag;
+  final String? gamerpicUrl;
   final int gamerscore;
-  final String gamerpicUrl;
-  final bool isFollowingCaller;
+  final bool isOnline;
 
   Friend({
     required this.xuid,
     required this.gamertag,
     required this.gamerscore,
-    required this.gamerpicUrl,
-    required this.isFollowingCaller,
+    this.gamerpicUrl,
+    this.isOnline = false,
   });
 
-  factory Friend.fromJson(Map<String, dynamic> json) => Friend(
-        xuid: json['xuid'].toString(),
-        gamertag: json['gamertag'] ?? '',
-        gamerscore: int.tryParse(json['gamerScore']?.toString() ?? '0') ?? 0,
-        gamerpicUrl: json['displayPicRaw'] ?? '',
-        isFollowingCaller: json['isFollowingCaller'] ?? false,
-      );
+  factory Friend.fromJson(Map<String, dynamic> json) {
+    return Friend(
+      xuid: '${json['xuid']}',
+      gamertag: json['gamertag'] ?? json['modernGamertag'] ?? '',
+      gamerpicUrl: json['displayPicRaw'],
+      gamerscore: int.tryParse('${json['gamerscore']}') ?? 0,
+      isOnline: (json['presenceState'] ?? '') == 'Online',
+    );
+  }
 }

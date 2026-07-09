@@ -1,29 +1,28 @@
-// OpenXBL API config
+// Central place for all external API endpoints
 class ApiConstants {
   ApiConstants._();
 
-  static const String openXblBase = 'https://xbl.io/api/v2';
-  static const String xapiBase = 'https://xapi.us/v2';
+  // OpenXBL base
+  static const openXblBase = 'https://xbl.io/api/v2';
+  static const authHeader = 'X-Authorization';
 
-  // Endpoints
-  static const String account = '/account';
-  static const String friends = '/friends';
-  static const String friendSearch = '/friends/search';
-  static const String achievements = '/achievements';
-  static const String gameClips = '/dvr/gameclips';
-  static const String screenshots = '/dvr/screenshots';
-  static const String presence = '/presence';
-  static const String titleHistory = '/player/titleHistory';
+  // OpenXBL routes
+  static const account = '/account';
+  static const friends = '/friends';
+  static const friendSearch = '/friends/search';
+  static const achievements = '/achievements';
+  static const gameClips = '/dvr/gameclips';
+  static const screenshots = '/dvr/screenshots';
 
-  // Image CDNs
-  static const String gamerpicCdn = 'https://images-eds-ssl.xboxlive.com';
-  static const String gameArtCdn = 'https://images-eds.xboxlive.com';
+  // Alt gateway (fallback / future use)
+  static const xapiBase = 'https://xapi.us';
 
-  // GitHub updates
-  static const String githubOwner = 'YOUR_USERNAME';
-  static const String githubRepo = 'YOUR_REPO';
-  static String get latestReleaseUrl =>
-      'https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest';
+  // Xbox CDNs
+  static const gamerpicCdn = 'https://images-eds-ssl.xboxlive.com';
+  static const gameArtCdn = 'https://images-eds.xboxlive.com';
 
-  static const String authHeader = 'X-Authorization';
+  // GitHub self-update
+  // TODO: replace with your repo
+  static const latestReleaseUrl =
+      'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO/releases/latest';
 }

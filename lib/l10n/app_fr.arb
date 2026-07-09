@@ -1,23 +1,35 @@
 {
   "@@locale": "fr",
-  "appTitle": "XScore",
+
   "navDashboard": "Tableau de bord",
   "navGames": "Mes jeux",
   "navSocial": "Social",
   "navMedia": "Médias",
+
+  "dashboardGamerscore": "Gamerscore",
+  "dashboardRecentActivity": "Activité récente",
+
+  "gamesTitle": "Mes jeux",
+  "socialTitle": "Social",
+  "mediaTitle": "Médias",
+
   "settingsTitle": "Paramètres",
   "settingsApiKey": "Clé API",
   "settingsApiKeyHint": "Entrez votre clé API OpenXBL",
   "settingsLanguage": "Langue",
   "settingsUpdates": "Vérifier les mises à jour",
+  "settingsUpdatesAvailable": "Mise à jour disponible",
   "settingsUpdatesUpToDate": "Vous êtes à jour",
-  "settingsUpdatesAvailable": "Nouvelle version disponible",
-  "dashboardGamerscore": "Gamerscore",
-  "dashboardRecentActivity": "Activité récente",
-  "gamesTitle": "Mes jeux",
-  "socialTitle": "Amis",
-  "mediaTitle": "Clips & captures d'écran",
-  "actionSave": "Enregistrer",
+
   "actionDownload": "Télécharger",
-  "actionCancel": "Annuler"
+  "actionConnect": "Connexion",
+  "actionRetry": "Réessayer",
+
+  "setupTitle": "Connecte ton compte Xbox",
+  "setupSubtitle": "Colle ta clé API OpenXBL pour commencer",
+  "setupApiKeyHint": "Clé API OpenXBL",
+  "setupGetKeyLink": "Obtenir une clé gratuite sur xbl.io",
+  "setupErrorEmpty": "Merci de saisir ta clé API.",
+  "setupErrorInvalid": "Cette clé API semble invalide.",
+  "setupConnecting": "Connexion en cours…"
 }

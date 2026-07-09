@@ -1,31 +1,38 @@
-// Player profile data model
+// Own or looked-up player profile
 class PlayerProfile {
   final String xuid;
   final String gamertag;
+  final String? gamerpicUrl;
   final int gamerscore;
-  final String gamerpicUrl;
-  final String accountTier;
+  final String? bio;
 
   PlayerProfile({
     required this.xuid,
     required this.gamertag,
     required this.gamerscore,
-    required this.gamerpicUrl,
-    required this.accountTier,
+    this.gamerpicUrl,
+    this.bio,
   });
 
-  // Parse OpenXBL /account response shape
   factory PlayerProfile.fromAccountJson(Map<String, dynamic> json) {
-    final user = (json['profileUsers'] as List).first;
-    final settings = <String, String>{
-      for (final s in user['settings']) s['id']: s['value'].toString(),
-    };
+    final users = (json['profileUsers'] as List?) ?? [json];
+    final user = users.isNotEmpty ? users.first as Map<String, dynamic> : json;
+    final settings = (user['settings'] as List?) ?? [];
+
+    String? find(String id) {
+      final match = settings.firstWhere(
+        (s) => s['id'] == id,
+        orElse: () => null,
+      );
+      return match?['value'];
+    }
+
     return PlayerProfile(
-      xuid: user['id'],
-      gamertag: settings['Gamertag'] ?? '',
-      gamerscore: int.tryParse(settings['Gamerscore'] ?? '0') ?? 0,
-      gamerpicUrl: settings['GameDisplayPicRaw'] ?? '',
-      accountTier: settings['AccountTier'] ?? '',
+      xuid: '${user['id'] ?? user['xuid'] ?? ''}',
+      gamertag: find('Gamertag') ?? user['gamertag'] ?? '',
+      gamerpicUrl: find('GameDisplayPicRaw'),
+      gamerscore: int.tryParse(find('Gamerscore') ?? '0') ?? 0,
+      bio: find('Bio'),
     );
   }
 }

@@ -9,9 +9,6 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appTitle => 'XScore';
-
-  @override
   String get navDashboard => 'Tableau de bord';
 
   @override
@@ -22,6 +19,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get navMedia => 'Médias';
+
+  @override
+  String get dashboardGamerscore => 'Gamerscore';
+
+  @override
+  String get dashboardRecentActivity => 'Activité récente';
+
+  @override
+  String get gamesTitle => 'Mes jeux';
+
+  @override
+  String get socialTitle => 'Social';
+
+  @override
+  String get mediaTitle => 'Médias';
 
   @override
   String get settingsTitle => 'Paramètres';
@@ -39,32 +51,38 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsUpdates => 'Vérifier les mises à jour';
 
   @override
+  String get settingsUpdatesAvailable => 'Mise à jour disponible';
+
+  @override
   String get settingsUpdatesUpToDate => 'Vous êtes à jour';
-
-  @override
-  String get settingsUpdatesAvailable => 'Nouvelle version disponible';
-
-  @override
-  String get dashboardGamerscore => 'Gamerscore';
-
-  @override
-  String get dashboardRecentActivity => 'Activité récente';
-
-  @override
-  String get gamesTitle => 'Mes jeux';
-
-  @override
-  String get socialTitle => 'Amis';
-
-  @override
-  String get mediaTitle => 'Clips & captures d\'écran';
-
-  @override
-  String get actionSave => 'Enregistrer';
 
   @override
   String get actionDownload => 'Télécharger';
 
   @override
-  String get actionCancel => 'Annuler';
+  String get actionConnect => 'Connexion';
+
+  @override
+  String get actionRetry => 'Réessayer';
+
+  @override
+  String get setupTitle => 'Connecte ton compte Xbox';
+
+  @override
+  String get setupSubtitle => 'Colle ta clé API OpenXBL pour commencer';
+
+  @override
+  String get setupApiKeyHint => 'Clé API OpenXBL';
+
+  @override
+  String get setupGetKeyLink => 'Obtenir une clé gratuite sur xbl.io';
+
+  @override
+  String get setupErrorEmpty => 'Merci de saisir ta clé API.';
+
+  @override
+  String get setupErrorInvalid => 'Cette clé API semble invalide.';
+
+  @override
+  String get setupConnecting => 'Connexion en cours…';
 }

@@ -1,23 +1,35 @@
 {
   "@@locale": "en",
-  "appTitle": "XScore",
+
   "navDashboard": "Dashboard",
   "navGames": "My Games",
   "navSocial": "Social",
   "navMedia": "Media",
+
+  "dashboardGamerscore": "Gamerscore",
+  "dashboardRecentActivity": "Recent Activity",
+
+  "gamesTitle": "My Games",
+  "socialTitle": "Social",
+  "mediaTitle": "Media",
+
   "settingsTitle": "Settings",
   "settingsApiKey": "API Key",
   "settingsApiKeyHint": "Enter your OpenXBL API key",
   "settingsLanguage": "Language",
   "settingsUpdates": "Check for Updates",
-  "settingsUpdatesUpToDate": "You are up to date",
-  "settingsUpdatesAvailable": "New version available",
-  "dashboardGamerscore": "Gamerscore",
-  "dashboardRecentActivity": "Recent Activity",
-  "gamesTitle": "My Games",
-  "socialTitle": "Friends",
-  "mediaTitle": "Game Clips & Screenshots",
-  "actionSave": "Save",
+  "settingsUpdatesAvailable": "Update available",
+  "settingsUpdatesUpToDate": "You're up to date",
+
   "actionDownload": "Download",
-  "actionCancel": "Cancel"
+  "actionConnect": "Connect",
+  "actionRetry": "Retry",
+
+  "setupTitle": "Connect your Xbox account",
+  "setupSubtitle": "Paste your OpenXBL API key to get started",
+  "setupApiKeyHint": "OpenXBL API key",
+  "setupGetKeyLink": "Get a free key on xbl.io",
+  "setupErrorEmpty": "Please enter your API key.",
+  "setupErrorInvalid": "This API key seems invalid.",
+  "setupConnecting": "Connecting…"
 }

@@ -4,6 +4,7 @@ import 'core/theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/providers/settings_provider.dart';
 import 'presentation/widgets/adaptive_nav_shell.dart';
+import 'presentation/setup/setup_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,10 @@ class XScoreApp extends StatelessWidget {
             locale: settings.locale,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: const AdaptiveNavShell(),
+            // Gate: no API key yet -> setup screen
+            home: settings.hasApiKey
+                ? const AdaptiveNavShell()
+                : const SetupScreen(),
           );
         },
       ),
