@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+  "appTitle": "XScore",
+  "navDashboard": "Dashboard",
+  "navGames": "My Games",
+  "navSocial": "Social",
+  "navMedia": "Media",
+  "settingsTitle": "Settings",
+  "settingsApiKey": "API Key",
+  "settingsApiKeyHint": "Enter your OpenXBL API key",
+  "settingsLanguage": "Language",
+  "settingsUpdates": "Check for Updates",
+  "settingsUpdatesUpToDate": "You are up to date",
+  "settingsUpdatesAvailable": "New version available",
+  "dashboardGamerscore": "Gamerscore",
+  "dashboardRecentActivity": "Recent Activity",
+  "gamesTitle": "My Games",
+  "socialTitle": "Friends",
+  "mediaTitle": "Game Clips & Screenshots",
+  "actionSave": "Save",
+  "actionDownload": "Download",
+  "actionCancel": "Cancel"
+}
