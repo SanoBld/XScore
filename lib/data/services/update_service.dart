@@ -19,7 +19,7 @@ class UpdateInfo {
   });
 }
 
-// Checks GitHub latest release and compares semver
+// Checks GitHub latest release and compare semver
 class UpdateService {
   Future<UpdateInfo> checkForUpdate() async {
     final info = await PackageInfo.fromPlatform();
