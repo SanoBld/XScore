@@ -35,41 +35,72 @@ class XboxDataProvider extends ChangeNotifier {
   List<GameClip> screenshots = [];
 
   bool loading = false;
-  String? error;
+  // Per-section errors so one broken endpoint doesn't hide the others
+  String? profileError;
+  String? titlesError;
+  String? friendsError;
+  String? mediaError;
   DateTime? _lastLoad;
 
   bool get isStale =>
       _lastLoad == null || DateTime.now().difference(_lastLoad!) > _cacheTtl;
 
-  // Loads everything needed across tabs in one pass. Pass force=true
-  // for pull-to-refresh; otherwise cached data is reused if fresh.
+  // Loads everything needed across tabs. Each section is fetched and
+  // caught independently: a broken endpoint no longer blanks everything.
   Future<void> loadAll({bool force = false}) async {
     if (!force && !isStale && profile != null) return;
 
     loading = true;
-    error = null;
+    profileError = null;
+    titlesError = null;
+    friendsError = null;
+    mediaError = null;
     notifyListeners();
 
     try {
       profile = await _profileService.getMyProfile();
-      final results = await Future.wait([
-        _achievementsService.getTitleHistory(profile!.xuid),
-        _socialService.getFriends(),
+      debugPrint(
+          'XScore profile loaded: gamertag="${profile!.gamertag}" xuid=${profile!.xuid} gamerscore=${profile!.gamerscore}');
+    } catch (e) {
+      profileError = '$e';
+      debugPrint('XScore profile ERROR: $e');
+    }
+
+    if (profile != null) {
+      try {
+        titles = await _achievementsService.getTitleHistory(profile!.xuid);
+      } catch (e) {
+        titlesError = '$e';
+        debugPrint('XScore titleHistory ERROR: $e');
+      }
+    }
+
+    try {
+      friends = await _socialService.getFriends();
+    } catch (e) {
+      friendsError = '$e';
+      debugPrint('XScore friends ERROR: $e');
+    }
+
+    try {
+      final media = await Future.wait([
         _mediaService.getGameClips(),
         _mediaService.getScreenshots(),
       ]);
-      titles = results[0] as List<TitleSummary>;
-      friends = results[1] as List<Friend>;
-      gameClips = results[2] as List<GameClip>;
-      screenshots = results[3] as List<GameClip>;
-      _lastLoad = DateTime.now();
+      gameClips = media[0];
+      screenshots = media[1];
     } catch (e) {
-      error = '$e';
-    } finally {
-      loading = false;
-      notifyListeners();
+      mediaError = '$e';
+      debugPrint('XScore media ERROR: $e');
     }
+
+    _lastLoad = DateTime.now();
+    loading = false;
+    notifyListeners();
   }
+
+  // Kept for pages still referencing a single generic error
+  String? get error => profileError;
 
   // Dashboard: top 5 recently played
   List<TitleSummary> get recentTitles => titles.take(5).toList();

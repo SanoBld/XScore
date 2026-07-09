@@ -51,27 +51,34 @@ class _DashboardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final data = context.watch<XboxDataProvider>();
+    final scheme = Theme.of(context).colorScheme;
 
     if (data.loading && data.profile == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (data.error != null && data.profile == null) {
-      return ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: 8),
-          Text(data.error!, textAlign: TextAlign.center),
-        ],
-      );
-    }
 
     final profile = data.profile;
-    final scheme = Theme.of(context).colorScheme;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Debug: shows the real cause when something failed to load,
+        // even if profile partially loaded. Safe to remove later.
+        if (data.profileError != null)
+          _ErrorBanner(label: 'Profil', message: data.profileError!),
+        if (data.titlesError != null)
+          _ErrorBanner(label: 'Jeux', message: data.titlesError!),
+        if (data.friendsError != null)
+          _ErrorBanner(label: 'Amis', message: data.friendsError!),
+        if (data.mediaError != null)
+          _ErrorBanner(label: 'Médias', message: data.mediaError!),
+
+        if (profile == null && data.profileError == null)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: Text('—')),
+          ),
+
         if (profile != null)
           Card(
             child: Padding(
@@ -93,8 +100,12 @@ class _DashboardBody extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(profile.gamertag,
-                            style: Theme.of(context).textTheme.titleLarge),
+                        Text(
+                          profile.gamertag.isEmpty
+                              ? '(gamertag introuvable)'
+                              : profile.gamertag,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         if (profile.bio != null && profile.bio!.isNotEmpty)
                           Text(profile.bio!,
                               style: Theme.of(context).textTheme.bodySmall),
@@ -160,6 +171,39 @@ class _DashboardBody extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String label;
+  final String message;
+  const _ErrorBanner({required this.label, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        color: scheme.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.error_outline, color: scheme.onErrorContainer, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$label : $message',
+                  style: TextStyle(color: scheme.onErrorContainer, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
