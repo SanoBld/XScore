@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/constants/storage_keys.dart';
 import '../providers/settings_provider.dart';
 import '../../data/services/update_service.dart';
 
@@ -17,11 +19,36 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _checking = false;
   UpdateInfo? _updateInfo;
 
+  bool _notifEnabled = true;
+  bool _notifAchievements = true;
+  bool _notifFriendOnline = false;
+  bool _notifClips = true;
+  bool _prefsLoaded = false;
+
   @override
   void initState() {
     super.initState();
     final settings = context.read<SettingsProvider>();
     _apiKeyCtrl = TextEditingController(text: settings.apiKey ?? '');
+    _loadNotifPrefs();
+  }
+
+  Future<void> _loadNotifPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notifEnabled = prefs.getBool(StorageKeys.notificationsEnabled) ?? true;
+      _notifAchievements =
+          prefs.getBool(StorageKeys.notifyAchievements) ?? true;
+      _notifFriendOnline =
+          prefs.getBool(StorageKeys.notifyFriendOnline) ?? false;
+      _notifClips = prefs.getBool(StorageKeys.notifyGameClips) ?? true;
+      _prefsLoaded = true;
+    });
+  }
+
+  Future<void> _setNotifPref(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
   }
 
   Future<void> _checkUpdate() async {
@@ -62,6 +89,16 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
+          const SizedBox(height: 6),
+          // Free tier quota reminder — avoids surprise 429s
+          Text(
+            'Quota gratuit OpenXBL : 150 requêtes / heure. L\'app met en cache '
+            'les données (5 min) pour l\'économiser.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 24),
 
           // Language section
@@ -79,6 +116,54 @@ class _SettingsPageState extends State<SettingsPage> {
               }
             },
           ),
+          const SizedBox(height: 24),
+
+          // Notifications section
+          Text('Notifications', style: Theme.of(context).textTheme.titleMedium),
+          if (_prefsLoaded) ...[
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Activer les notifications'),
+              value: _notifEnabled,
+              onChanged: (v) {
+                setState(() => _notifEnabled = v);
+                _setNotifPref(StorageKeys.notificationsEnabled, v);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Nouveaux succès débloqués'),
+              value: _notifAchievements,
+              onChanged: !_notifEnabled
+                  ? null
+                  : (v) {
+                      setState(() => _notifAchievements = v);
+                      _setNotifPref(StorageKeys.notifyAchievements, v);
+                    },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Ami en ligne'),
+              value: _notifFriendOnline,
+              onChanged: !_notifEnabled
+                  ? null
+                  : (v) {
+                      setState(() => _notifFriendOnline = v);
+                      _setNotifPref(StorageKeys.notifyFriendOnline, v);
+                    },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Nouveaux clips / captures'),
+              value: _notifClips,
+              onChanged: !_notifEnabled
+                  ? null
+                  : (v) {
+                      setState(() => _notifClips = v);
+                      _setNotifPref(StorageKeys.notifyGameClips, v);
+                    },
+            ),
+          ],
           const SizedBox(height: 24),
 
           // Updates section

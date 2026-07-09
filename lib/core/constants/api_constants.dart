@@ -14,6 +14,13 @@ class ApiConstants {
   static const gameClips = '/dvr/gameclips';
   static const screenshots = '/dvr/screenshots';
 
+  // Titles played + achievement progress per game (Games tab)
+  static String titleHistory(String xuid) =>
+      '/achievements/player/$xuid/titleHistory';
+
+  // Bulk presence lookup (comma-separated xuids)
+  static const presence = '/presence';
+
   // Alt gateway (fallback / future use)
   static const xapiBase = 'https://xapi.us';
 
