@@ -13,11 +13,24 @@ jobs:
           channel: stable
       - run: flutter create --platforms=android --project-name xscore .
       - run: flutter pub get
+
+      # Decode keystore + write key.properties so build.gradle.kts signs with it
+      - name: Setup signing key
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/xscore-release.keystore
+          cat >> android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=xscore-release.keystore
+          EOF
+
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: xscore-android
           path: build/app/outputs/flutter-apk/app-release.apk
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -34,6 +47,7 @@ jobs:
         with:
           name: xscore-windows
           path: xscore-windows.zip
+
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -51,6 +65,7 @@ jobs:
         with:
           name: xscore-linux
           path: xscore-linux.tar.gz
+
   build-macos:
     runs-on: macos-latest
     steps:
@@ -67,6 +82,7 @@ jobs:
         with:
           name: xscore-macos
           path: xscore-macos.zip
+
   release:
     needs: [build-android, build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
