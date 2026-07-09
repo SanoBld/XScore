@@ -50,14 +50,6 @@
       ]
     },
     {
-      "name": "system_theme",
-      "version": "2.3.1",
-      "dependencies": [
-        "flutter",
-        "system_theme_web"
-      ]
-    },
-    {
       "name": "flutter_secure_storage",
       "version": "9.2.4",
       "dependencies": [
@@ -260,15 +252,6 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
-      ]
-    },
-    {
-      "name": "system_theme_web",
-      "version": "0.0.5",
-      "dependencies": [
-        "flutter",
-        "flutter_web_plugins",
-        "web"
       ]
     },
     {
@@ -886,6 +869,23 @@
         "collection",
         "meta",
         "pub_semver"
+      ]
+    },
+    {
+      "name": "system_theme",
+      "version": "3.2.0",
+      "dependencies": [
+        "flutter",
+        "system_theme_web"
+      ]
+    },
+    {
+      "name": "system_theme_web",
+      "version": "0.0.5",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "web"
       ]
     }
   ],

@@ -622,10 +622,10 @@ packages:
     dependency: "direct main"
     description:
       name: system_theme
-      sha256: "1f208db140a3d1e1eac2034b54920d95699c1534df576ced44b3312c5de3975f"
+      sha256: "827cc5f94a6c3097a4c08d4f9eb11d345322f9deea5be1cb73611ff24bdf45bb"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.1"
+    version: "3.2.0"
   system_theme_web:
     dependency: transitive
     description:
