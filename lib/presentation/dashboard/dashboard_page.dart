@@ -38,7 +38,24 @@ class _DashboardPageState extends State<DashboardPage> {
     final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.navDashboard),
+        title: Consumer<XboxDataProvider>(
+          builder: (context, data, _) {
+            final p = data.profile;
+            return Row(
+              children: [
+                _GradientAvatar(imageUrl: p?.gamerpicUrl, radius: 16),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    p?.gamertag.isNotEmpty == true ? p!.gamertag : 'XScore',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -81,16 +98,7 @@ class _DashboardBody extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: scheme.primaryContainer,
-                    backgroundImage: profile.gamerpicUrl != null
-                        ? CachedNetworkImageProvider(profile.gamerpicUrl!)
-                        : null,
-                    child: profile.gamerpicUrl == null
-                        ? const Icon(Icons.person)
-                        : null,
-                  ),
+                  _GradientAvatar(imageUrl: profile.gamerpicUrl, radius: 32),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -147,6 +155,8 @@ class _DashboardBody extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        _RecordsRow(data: data),
         const SizedBox(height: 20),
 
         Text(t.dashboardRecentActivity,
@@ -378,6 +388,105 @@ class _ActivityEntry {
     required this.onTap,
     this.imageUrl,
   });
+}
+
+// Extra "at a glance" row — completed games, average completion, total clips
+// — all computed from data already loaded, no extra requests.
+class _RecordsRow extends StatelessWidget {
+  final XboxDataProvider data;
+  const _RecordsRow({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final titles = data.titles;
+    final completed = titles.where((t) => t.progressPercentage >= 100).length;
+    final avg = titles.isEmpty
+        ? 0.0
+        : titles.map((t) => t.progressPercentage).reduce((a, b) => a + b) / titles.length;
+    final mediaCount = data.gameClips.length + data.screenshots.length;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _MiniStat(icon: Icons.workspace_premium_outlined, label: 'Terminés', value: '$completed'),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MiniStat(
+              icon: Icons.donut_large_outlined,
+              label: 'Complétion moy.',
+              value: '${avg.toStringAsFixed(0)}%'),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MiniStat(icon: Icons.perm_media_outlined, label: 'Médias', value: '$mediaCount'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _MiniStat({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: scheme.primary),
+          const SizedBox(height: 4),
+          Text(value, style: Theme.of(context).textTheme.titleSmall),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
+    );
+  }
+}
+
+// Circular avatar with a brand gradient fallback instead of a flat grey
+// disc + person icon when there's no gamerpic yet.
+class _GradientAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final double radius;
+  const _GradientAvatar({required this.imageUrl, required this.radius});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: CachedNetworkImageProvider(imageUrl!),
+      );
+    }
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [scheme.primary, scheme.tertiary],
+        ),
+      ),
+      child: Icon(Icons.person, color: scheme.onPrimary, size: radius),
+    );
+  }
 }
 
 class _QuotaLine extends StatelessWidget {

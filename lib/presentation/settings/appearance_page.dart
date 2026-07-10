@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
@@ -40,14 +41,44 @@ class AppearancePage extends StatelessWidget {
           const SizedBox(height: 16),
 
           SettingsSection(
+            title: 'Thème',
+            icon: Icons.brightness_6_rounded,
+            children: [
+              SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                      value: ThemeMode.system,
+                      icon: Icon(Icons.brightness_auto_outlined),
+                      label: Text('Auto')),
+                  ButtonSegment(
+                      value: ThemeMode.light,
+                      icon: Icon(Icons.light_mode_outlined),
+                      label: Text('Clair')),
+                  ButtonSegment(
+                      value: ThemeMode.dark,
+                      icon: Icon(Icons.dark_mode_outlined),
+                      label: Text('Sombre')),
+                ],
+                selected: {settings.themeMode},
+                onSelectionChanged: (s) =>
+                    context.read<SettingsProvider>().setThemeMode(s.first),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          SettingsSection(
             title: 'Couleur d\'accent',
             icon: Icons.palette_rounded,
             children: [
               if (settings.supportsSystemAccent) ...[
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Utiliser la couleur du système'),
-                  subtitle: const Text('Reprend l\'accent Windows/macOS'),
+                  title: const Text('Suivre la couleur d\'accent du système'),
+                  subtitle: Text(
+                    'Détectée sur ${Platform.isWindows ? "Windows" : "macOS"} : '
+                    'change automatiquement si tu la modifies dans les réglages OS.',
+                  ),
                   value: settings.useSystemAccent,
                   onChanged: (v) =>
                       context.read<SettingsProvider>().setUseSystemAccent(v),

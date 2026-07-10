@@ -25,27 +25,31 @@ class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
     MediaPage(),
   ];
 
+  // Short, fixed French labels — the localized strings (t.navDashboard,
+  // etc.) were too long for the bottom bar on small screens. If you also
+  // ship English, update the matching keys in the ARB files to shorter
+  // values instead of reverting this.
   List<NavigationDestination> _destinations(AppLocalizations t) => [
-        NavigationDestination(
-            icon: const Icon(Icons.dashboard_outlined),
-            selectedIcon: const Icon(Icons.dashboard),
-            label: t.navDashboard),
-        NavigationDestination(
-            icon: const Icon(Icons.videogame_asset_outlined),
-            selectedIcon: const Icon(Icons.videogame_asset),
-            label: t.navGames),
+        const NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Accueil'),
+        const NavigationDestination(
+            icon: Icon(Icons.videogame_asset_outlined),
+            selectedIcon: Icon(Icons.videogame_asset),
+            label: 'Jeux'),
         const NavigationDestination(
             icon: Icon(Icons.search_outlined),
             selectedIcon: Icon(Icons.search),
             label: 'Recherche'),
-        NavigationDestination(
-            icon: const Icon(Icons.people_outline),
-            selectedIcon: const Icon(Icons.people),
-            label: t.navSocial),
-        NavigationDestination(
-            icon: const Icon(Icons.movie_outlined),
-            selectedIcon: const Icon(Icons.movie),
-            label: t.navMedia),
+        const NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Amis'),
+        const NavigationDestination(
+            icon: Icon(Icons.movie_outlined),
+            selectedIcon: Icon(Icons.movie),
+            label: 'Médias'),
       ];
 
   @override

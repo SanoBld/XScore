@@ -29,6 +29,7 @@ class XScoreApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(settings.accentColor),
             darkTheme: AppTheme.dark(settings.accentColor),
+            themeMode: settings.themeMode,
             locale: settings.locale,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

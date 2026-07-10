@@ -22,7 +22,7 @@ class SettingsProvider extends ChangeNotifier {
 
   String? _apiKey;
   Locale _locale = const Locale('en');
-  final ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.system;
   Color? _accentColor; // null = use system accent color
   bool _useSystemAccent = true;
   bool _gamesGridLayout = false; // false = liste, true = grille
@@ -60,6 +60,13 @@ class SettingsProvider extends ChangeNotifier {
     final lang = prefs.getString(StorageKeys.languageCode);
     if (lang != null) _locale = Locale(lang);
 
+    final themeStr = prefs.getString(StorageKeys.themeMode);
+    _themeMode = switch (themeStr) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
+
     _useSystemAccent = prefs.getBool('use_system_accent') ?? true;
     final storedColor = prefs.getInt('accent_color');
     if (storedColor != null) _accentColor = Color(storedColor);
@@ -96,6 +103,16 @@ class SettingsProvider extends ChangeNotifier {
     _showQuotaOnDashboard = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_quota_on_dashboard', value);
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      StorageKeys.themeMode,
+      mode == ThemeMode.light ? 'light' : mode == ThemeMode.dark ? 'dark' : 'system',
+    );
     notifyListeners();
   }
 

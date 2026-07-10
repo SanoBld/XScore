@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/xbox_data_provider.dart';
 import '../../data/models/title_summary.dart';
 import '../../data/models/achievement.dart';
+import '../../data/models/friend.dart';
 
 class GameDetailPage extends StatefulWidget {
   final TitleSummary title;
@@ -16,6 +17,11 @@ class GameDetailPage extends StatefulWidget {
 class _GameDetailPageState extends State<GameDetailPage> {
   List<Achievement>? _achievements;
   String? _error;
+
+  Friend? _compareFriend;
+  List<Achievement>? _friendAchievements;
+  bool _comparing = false;
+  String? _compareError;
 
   @override
   void initState() {
@@ -35,6 +41,50 @@ class _GameDetailPageState extends State<GameDetailPage> {
       if (mounted) setState(() => _achievements = list);
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
+    }
+  }
+
+  Future<void> _pickFriendToCompare() async {
+    final data = context.read<XboxDataProvider>();
+    if (data.friends.isEmpty) return;
+    final chosen = await showModalBottomSheet<Friend>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: data.friends
+              .map((f) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: f.gamerpicUrl != null
+                          ? CachedNetworkImageProvider(f.gamerpicUrl!)
+                          : null,
+                      child: f.gamerpicUrl == null ? const Icon(Icons.person) : null,
+                    ),
+                    title: Text(f.gamertag),
+                    onTap: () => Navigator.pop(ctx, f),
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+    if (chosen == null) return;
+
+    setState(() {
+      _compareFriend = chosen;
+      _comparing = true;
+      _compareError = null;
+      _friendAchievements = null;
+    });
+    try {
+      final data2 = context.read<XboxDataProvider>();
+      final list = await data2.achievementsService
+          .getAchievements(chosen.xuid, widget.title.titleId);
+      if (mounted) setState(() => _friendAchievements = list);
+    } catch (e) {
+      if (mounted) setState(() => _compareError = '$e');
+    } finally {
+      if (mounted) setState(() => _comparing = false);
     }
   }
 
@@ -96,6 +146,32 @@ class _GameDetailPageState extends State<GameDetailPage> {
                         const SizedBox(width: 6),
                         Text('$unlocked / $total succès débloqués'),
                       ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _comparing ? null : _pickFriendToCompare,
+                    icon: _comparing
+                        ? const SizedBox(
+                            width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.compare_arrows, size: 18),
+                    label: Text(_compareFriend == null
+                        ? 'Comparer avec un ami'
+                        : 'Comparer avec ${_compareFriend!.gamertag}'),
+                  ),
+                  if (_compareError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('Comparaison indisponible : $_compareError',
+                          style: TextStyle(color: scheme.error, fontSize: 12)),
+                    ),
+                  if (_compareFriend != null && _friendAchievements != null) ...[
+                    const SizedBox(height: 12),
+                    _ComparisonCard(
+                      friend: _compareFriend!,
+                      mine: _achievements ?? [],
+                      theirs: _friendAchievements!,
                     ),
                   ],
                   const SizedBox(height: 20),
@@ -177,6 +253,65 @@ class _GameDetailPageState extends State<GameDetailPage> {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _ComparisonCard extends StatelessWidget {
+  final Friend friend;
+  final List<Achievement> mine;
+  final List<Achievement> theirs;
+  const _ComparisonCard({required this.friend, required this.mine, required this.theirs});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final myUnlocked = mine.where((a) => a.unlocked).length;
+    final theirUnlocked = theirs.where((a) => a.unlocked).length;
+    final total = theirs.isNotEmpty ? theirs.length : mine.length;
+
+    final theirNames = theirs.where((a) => a.unlocked).map((a) => a.name).toSet();
+    final myNames = mine.where((a) => a.unlocked).map((a) => a.name).toSet();
+    final onlyThem = theirNames.difference(myNames);
+    final onlyMe = myNames.difference(theirNames);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    Text('$myUnlocked/$total', style: Theme.of(context).textTheme.titleLarge),
+                    const Text('Toi'),
+                  ],
+                ),
+                Icon(Icons.compare_arrows, color: scheme.onSurfaceVariant),
+                Column(
+                  children: [
+                    Text('$theirUnlocked/$total', style: Theme.of(context).textTheme.titleLarge),
+                    Text(friend.gamertag, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ],
+            ),
+            if (onlyThem.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text('${friend.gamertag} a débloqué ${onlyThem.length} succès que tu n\'as pas',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+            if (onlyMe.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('Tu as débloqué ${onlyMe.length} succès que ${friend.gamertag} n\'a pas',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ],
+        ),
       ),
     );
   }
