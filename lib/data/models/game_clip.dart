@@ -20,11 +20,18 @@ class GameClip {
         (json['screenshotUris'] as List?) ??
         [];
 
+    // Thumbnails/media URIs often list several resolutions — take the
+    // largest (last one) for quality instead of always the first.
+    String bestUrl(List list) {
+      if (list.isEmpty) return '';
+      return list.last['uri'] ?? list.first['uri'] ?? '';
+    }
+
     return GameClip(
       id: '${json['gameClipId'] ?? json['screenshotId'] ?? ''}',
       titleName: json['titleName'] ?? '',
-      thumbnailUrl: thumbs.isNotEmpty ? thumbs.first['uri'] ?? '' : '',
-      mediaUrl: uris.isNotEmpty ? uris.first['uri'] ?? '' : '',
+      thumbnailUrl: bestUrl(thumbs),
+      mediaUrl: bestUrl(uris),
       date: DateTime.tryParse(json['dateRecorded'] ?? '') ?? DateTime.now(),
     );
   }

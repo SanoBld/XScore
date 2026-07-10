@@ -8,9 +8,14 @@ class AchievementsService {
   final ApiClient client;
   AchievementsService(this.client);
 
-  Future<List<Achievement>> getAchievements(String titleId) async {
-    final json =
-        await client.get('${ApiConstants.achievements}/player/$titleId');
+  // Same pattern as /account and /account/{xuid}: own achievements need no
+  // xuid, but the OpenXBL wrapper still exposes /achievements/{xuid} — pass
+  // xuid explicitly to be safe, filtered to one title via query param.
+  Future<List<Achievement>> getAchievements(String xuid, String titleId) async {
+    final json = await client.get(
+      '${ApiConstants.achievements}/$xuid',
+      query: {'titleId': titleId},
+    );
     final list = (json['achievements'] as List?) ?? [];
     return list.map((e) => Achievement.fromJson(e)).toList();
   }

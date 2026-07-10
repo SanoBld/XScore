@@ -21,12 +21,14 @@ class TitleSummary {
   factory TitleSummary.fromJson(Map<String, dynamic> json) {
     final images = (json['images'] as List?) ?? [];
     final boxArt = images.firstWhere(
-      (i) => i['type'] == 'BoxArt',
+      (i) => i['type'] == 'BoxArt' || i['type'] == 'Boxart',
       orElse: () => images.isNotEmpty ? images.first : null,
     );
+    // Fallback: some responses only have a flat `displayImage` string
+    final image = boxArt != null
+        ? boxArt['url'] as String?
+        : (json['displayImage'] as String?);
 
-    // Some responses nest gamerscore/progress under "achievement",
-    // others put it flat on the title object — support both.
     final achievement = json['achievement'] as Map<String, dynamic>?;
     final current = achievement?['currentGamerscore'] ?? json['currentGamerscore'];
     final total = achievement?['totalGamerscore'] ??
@@ -41,7 +43,7 @@ class TitleSummary {
     return TitleSummary(
       titleId: '${json['titleId'] ?? ''}',
       name: json['name'] ?? '',
-      boxArtUrl: boxArt != null ? boxArt['url'] as String? : null,
+      boxArtUrl: image,
       currentGamerscore: int.tryParse('${current ?? 0}') ?? 0,
       totalGamerscore: int.tryParse('${total ?? 0}') ?? 0,
       progressPercentage: double.tryParse('${progress ?? 0}') ?? 0,

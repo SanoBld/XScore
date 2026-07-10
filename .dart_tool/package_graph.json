@@ -17,7 +17,8 @@
         "provider",
         "shared_preferences",
         "system_theme",
-        "url_launcher"
+        "url_launcher",
+        "video_player"
       ],
       "devDependencies": [
         "flutter_lints",
@@ -47,6 +48,14 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "system_theme",
+      "version": "3.2.0",
+      "dependencies": [
+        "flutter",
+        "system_theme_web"
       ]
     },
     {
@@ -252,6 +261,15 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "system_theme_web",
+      "version": "0.0.5",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "web"
       ]
     },
     {
@@ -872,19 +890,65 @@
       ]
     },
     {
-      "name": "system_theme",
-      "version": "3.2.0",
+      "name": "video_player",
+      "version": "2.11.1",
       "dependencies": [
+        "collection",
         "flutter",
-        "system_theme_web"
+        "html",
+        "video_player_android",
+        "video_player_avfoundation",
+        "video_player_platform_interface",
+        "video_player_web"
       ]
     },
     {
-      "name": "system_theme_web",
-      "version": "0.0.5",
+      "name": "video_player_platform_interface",
+      "version": "6.9.0",
+      "dependencies": [
+        "flutter",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "video_player_android",
+      "version": "2.9.5",
+      "dependencies": [
+        "flutter",
+        "video_player_platform_interface"
+      ]
+    },
+    {
+      "name": "html",
+      "version": "0.15.6",
+      "dependencies": [
+        "csslib",
+        "source_span"
+      ]
+    },
+    {
+      "name": "csslib",
+      "version": "1.0.2",
+      "dependencies": [
+        "source_span"
+      ]
+    },
+    {
+      "name": "video_player_avfoundation",
+      "version": "2.11.0",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "video_player_platform_interface"
+      ]
+    },
+    {
+      "name": "video_player_web",
+      "version": "2.4.0",
       "dependencies": [
         "flutter",
         "flutter_web_plugins",
+        "video_player_platform_interface",
         "web"
       ]
     }

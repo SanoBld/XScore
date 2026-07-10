@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/xbox_data_provider.dart';
 import '../../data/models/friend.dart';
 import '../../data/models/player_profile.dart';
+import '../../data/models/title_summary.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final Friend friend;
@@ -15,6 +16,7 @@ class FriendProfilePage extends StatefulWidget {
 
 class _FriendProfilePageState extends State<FriendProfilePage> {
   PlayerProfile? _profile;
+  List<TitleSummary>? _titles;
   String? _error;
 
   @override
@@ -24,16 +26,19 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   }
 
   Future<void> _load() async {
+    final data = context.read<XboxDataProvider>();
     try {
-      // Reuses cached gamertag search rather than a dedicated xuid lookup
-      final data = context.read<XboxDataProvider>();
       final p = await data.achievementsService.client
           .get('/account/${widget.friend.xuid}');
-      if (mounted) {
-        setState(() => _profile = PlayerProfile.fromAccountJson(p));
-      }
+      if (mounted) setState(() => _profile = PlayerProfile.fromAccountJson(p));
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
+    }
+    try {
+      final titles = await data.achievementsService.getTitleHistory(widget.friend.xuid);
+      if (mounted) setState(() => _titles = titles);
+    } catch (_) {
+      // Stats optionnelles, on n'affiche juste rien si ça échoue
     }
   }
 
@@ -41,6 +46,7 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   Widget build(BuildContext context) {
     final f = widget.friend;
     final scheme = Theme.of(context).colorScheme;
+    final topGame = (_titles != null && _titles!.isNotEmpty) ? _titles!.first : null;
 
     return Scaffold(
       appBar: AppBar(title: Text(f.gamertag)),
@@ -73,13 +79,50 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
             ),
           ),
           const SizedBox(height: 20),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.emoji_events_outlined),
-              title: const Text('Gamerscore'),
-              subtitle: Text('${f.gamerscore}'),
-            ),
+
+          Row(
+            children: [
+              Expanded(
+                child: _StatTile(
+                  icon: Icons.emoji_events_outlined,
+                  label: 'Gamerscore',
+                  value: '${f.gamerscore}',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _StatTile(
+                  icon: Icons.videogame_asset_outlined,
+                  label: 'Jeux',
+                  value: _titles != null ? '${_titles!.length}' : '—',
+                ),
+              ),
+            ],
           ),
+
+          if (topGame != null) ...[
+            const SizedBox(height: 20),
+            Text('Jeu le plus récent', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: topGame.boxArtUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: topGame.boxArtUrl!, width: 44, height: 44, fit: BoxFit.cover)
+                      : Container(
+                          width: 44,
+                          height: 44,
+                          color: scheme.surfaceContainerHigh,
+                          child: const Icon(Icons.videogame_asset)),
+                ),
+                title: Text(topGame.name),
+                subtitle: Text('${topGame.progressPercentage.toStringAsFixed(0)}% terminé'),
+              ),
+            ),
+          ],
+
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 16),
@@ -97,6 +140,32 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _StatTile({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: scheme.primary, size: 20),
+            const SizedBox(height: 8),
+            Text(value, style: Theme.of(context).textTheme.titleMedium),
+            Text(label, style: Theme.of(context).textTheme.labelSmall),
+          ],
+        ),
       ),
     );
   }

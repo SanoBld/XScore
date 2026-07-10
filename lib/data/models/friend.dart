@@ -15,11 +15,15 @@ class Friend {
   });
 
   factory Friend.fromJson(Map<String, dynamic> json) {
+    // OpenXBL isn't consistent: /friends uses lowercase "gamerscore",
+    // /search/{gamertag} uses "gamerScore" — support both.
+    final scoreRaw = json['gamerscore'] ?? json['gamerScore'] ?? json['Gamerscore'];
+
     return Friend(
-      xuid: '${json['xuid']}',
+      xuid: '${json['xuid'] ?? json['id'] ?? ''}',
       gamertag: json['gamertag'] ?? json['modernGamertag'] ?? '',
-      gamerpicUrl: json['displayPicRaw'],
-      gamerscore: int.tryParse('${json['gamerscore']}') ?? 0,
+      gamerpicUrl: json['displayPicRaw'] ?? json['gamerpic'],
+      gamerscore: int.tryParse('$scoreRaw') ?? 0,
       isOnline: (json['presenceState'] ?? '') == 'Online',
     );
   }
