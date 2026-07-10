@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../dashboard/dashboard_page.dart';
 import '../games/games_page.dart';
+import '../search/search_page.dart';
 import '../social/social_page.dart';
 import '../media/media_page.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,6 +20,7 @@ class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
   static const _pages = [
     DashboardPage(),
     GamesPage(),
+    SearchPage(),
     SocialPage(),
     MediaPage(),
   ];
@@ -32,6 +34,10 @@ class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
             icon: const Icon(Icons.videogame_asset_outlined),
             selectedIcon: const Icon(Icons.videogame_asset),
             label: t.navGames),
+        const NavigationDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: 'Recherche'),
         NavigationDestination(
             icon: const Icon(Icons.people_outline),
             selectedIcon: const Icon(Icons.people),

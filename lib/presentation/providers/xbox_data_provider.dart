@@ -8,6 +8,7 @@ import '../../data/models/player_profile.dart';
 import '../../data/models/title_summary.dart';
 import '../../data/models/friend.dart';
 import '../../data/models/game_clip.dart';
+import '../../data/models/achievement.dart';
 
 // Central cache for all Xbox data. Loaded once, refreshed manually,
 // so the free 150 req/h OpenXBL quota isn't burned by every tab switch.
@@ -93,6 +94,45 @@ class XboxDataProvider extends ChangeNotifier {
 
     _lastLoad = DateTime.now();
     loading = false;
+    notifyListeners();
+  }
+
+  // ── Recent achievements activity ──────────────────────────────────────
+  // Not loaded automatically: each title needs its own request, so this is
+  // gated behind an explicit user action + a one-time warning (see
+  // SettingsProvider.hasSeenAchievementQuotaWarning / dashboard toggle).
+  List<Achievement> recentAchievements = [];
+  bool loadingAchievementsActivity = false;
+  String? achievementsActivityError;
+
+  Future<void> loadRecentAchievementsActivity({int titleLimit = 6}) async {
+    if (profile == null) return;
+    loadingAchievementsActivity = true;
+    achievementsActivityError = null;
+    notifyListeners();
+
+    final xuid = profile!.xuid;
+    final scan = recentTitles.take(titleLimit).toList();
+    final collected = <Achievement>[];
+
+    for (final t in scan) {
+      try {
+        final list = await achievementsService.getAchievements(xuid, t.titleId);
+        collected.addAll(list.where((a) => a.unlocked));
+      } catch (_) {
+        // Skip titles the endpoint doesn't support (e.g. legacy Xbox 360
+        // games) instead of failing the whole activity feed.
+      }
+    }
+
+    collected.sort((a, b) {
+      final ad = a.unlockedAt ?? DateTime(2000);
+      final bd = b.unlockedAt ?? DateTime(2000);
+      return bd.compareTo(ad);
+    });
+
+    recentAchievements = collected.take(15).toList();
+    loadingAchievementsActivity = false;
     notifyListeners();
   }
 

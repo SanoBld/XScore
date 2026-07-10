@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,6 +26,9 @@ class SettingsProvider extends ChangeNotifier {
   Color? _accentColor; // null = use system accent color
   bool _useSystemAccent = true;
   bool _gamesGridLayout = false; // false = liste, true = grille
+  bool _showAchievementActivity = false;
+  bool _hasSeenAchievementQuotaWarning = false;
+  bool _showQuotaOnDashboard = false;
 
   String? get apiKey => _apiKey;
   Locale get locale => _locale;
@@ -31,9 +36,20 @@ class SettingsProvider extends ChangeNotifier {
   bool get hasApiKey => (_apiKey ?? '').isNotEmpty;
   bool get useSystemAccent => _useSystemAccent;
   bool get gamesGridLayout => _gamesGridLayout;
+  bool get showAchievementActivity => _showAchievementActivity;
+  bool get hasSeenAchievementQuotaWarning => _hasSeenAchievementQuotaWarning;
+  bool get showQuotaOnDashboard => _showQuotaOnDashboard;
 
-  // Resolved accent: system color if enabled, else the chosen preset
-  Color get accentColor => _useSystemAccent
+  // system_theme only reads a real OS accent on Windows/macOS. On
+  // Android/iOS/Linux it has no accent API and silently falls back to a
+  // generic blue — which is the "bleu chelou" bug: the toggle looked like
+  // it was working but was just always showing that fallback. So the
+  // system-accent option is only honored on the platforms that actually
+  // support it; everywhere else we always use the manually chosen preset.
+  bool get supportsSystemAccent =>
+      !kIsWeb && (Platform.isWindows || Platform.isMacOS);
+
+  Color get accentColor => (useSystemAccent && supportsSystemAccent)
       ? SystemTheme.accentColor.accent
       : (_accentColor ?? accentPresets.first);
 
@@ -48,6 +64,10 @@ class SettingsProvider extends ChangeNotifier {
     final storedColor = prefs.getInt('accent_color');
     if (storedColor != null) _accentColor = Color(storedColor);
     _gamesGridLayout = prefs.getBool('games_grid_layout') ?? false;
+    _showAchievementActivity = prefs.getBool('show_achievement_activity') ?? false;
+    _hasSeenAchievementQuotaWarning =
+        prefs.getBool('seen_achievement_quota_warning') ?? false;
+    _showQuotaOnDashboard = prefs.getBool('show_quota_on_dashboard') ?? false;
 
     notifyListeners();
   }
@@ -56,6 +76,26 @@ class SettingsProvider extends ChangeNotifier {
     _gamesGridLayout = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('games_grid_layout', value);
+    notifyListeners();
+  }
+
+  Future<void> setShowAchievementActivity(bool value) async {
+    _showAchievementActivity = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_achievement_activity', value);
+    notifyListeners();
+  }
+
+  Future<void> markAchievementQuotaWarningSeen() async {
+    _hasSeenAchievementQuotaWarning = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('seen_achievement_quota_warning', true);
+  }
+
+  Future<void> setShowQuotaOnDashboard(bool value) async {
+    _showQuotaOnDashboard = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_quota_on_dashboard', value);
     notifyListeners();
   }
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/settings_page.dart';
 import '../providers/xbox_data_provider.dart';
+import '../providers/settings_provider.dart';
 import '../games/game_detail_page.dart';
 import '../social/social_page.dart';
 import '../games/games_page.dart';
@@ -22,9 +23,14 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => context.read<XboxDataProvider>().loadAll(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final data = context.read<XboxDataProvider>();
+      await data.loadAll();
+      if (!mounted) return;
+      if (context.read<SettingsProvider>().showAchievementActivity) {
+        data.loadRecentAchievementsActivity();
+      }
+    });
   }
 
   @override
@@ -102,6 +108,9 @@ class _DashboardBody extends StatelessWidget {
               ),
             ),
           ),
+        const SizedBox(height: 12),
+        if (context.watch<SettingsProvider>().showQuotaOnDashboard)
+          _QuotaLine(data: data),
         const SizedBox(height: 12),
 
         // Quick stats row
@@ -262,19 +271,30 @@ class _RecentActivity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final useRealAchievements = context.watch<SettingsProvider>().showAchievementActivity;
 
     final items = <_ActivityEntry>[
-      ...data.titles
-          .where((t) => t.lastPlayed != null)
-          .map((t) => _ActivityEntry(
-                date: t.lastPlayed!,
-                icon: Icons.videogame_asset,
-                title: t.name,
-                subtitle: '${t.progressPercentage.toStringAsFixed(0)}% de progression',
-                imageUrl: t.boxArtUrl,
-                onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => GameDetailPage(title: t))),
-              )),
+      if (useRealAchievements)
+        ...data.recentAchievements.map((a) => _ActivityEntry(
+              date: a.unlockedAt ?? DateTime(2000),
+              icon: Icons.emoji_events,
+              title: a.name,
+              subtitle: 'Succès débloqué · ${a.gamerscore} G',
+              imageUrl: a.iconUrl,
+              onTap: () {},
+            ))
+      else
+        ...data.titles
+            .where((t) => t.lastPlayed != null)
+            .map((t) => _ActivityEntry(
+                  date: t.lastPlayed!,
+                  icon: Icons.videogame_asset,
+                  title: t.name,
+                  subtitle: '${t.progressPercentage.toStringAsFixed(0)}% de progression',
+                  imageUrl: t.boxArtUrl,
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => GameDetailPage(title: t))),
+                )),
       ...data.gameClips.map((c) => _ActivityEntry(
             date: c.date,
             icon: Icons.videocam,
@@ -296,6 +316,13 @@ class _RecentActivity extends StatelessWidget {
     ]..sort((a, b) => b.date.compareTo(a.date));
 
     final top = items.take(8).toList();
+
+    if (data.loadingAchievementsActivity && top.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     if (top.isEmpty) {
       return const Padding(
@@ -351,6 +378,23 @@ class _ActivityEntry {
     required this.onTap,
     this.imageUrl,
   });
+}
+
+class _QuotaLine extends StatelessWidget {
+  final XboxDataProvider data;
+  const _QuotaLine({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (data.quotaLimit == null || data.quotaSpent == null) {
+      return const SizedBox.shrink();
+    }
+    return Text(
+      'Quota OpenXBL (cet appareil) : ${data.quotaSpent}/${data.quotaLimit} · reste ${data.quotaRemaining}',
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+    );
+  }
 }
 
 class _StatCard extends StatelessWidget {

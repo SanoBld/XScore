@@ -57,9 +57,40 @@ class _SettingsPageState extends State<SettingsPage> {
       final info = await UpdateService().checkForUpdate();
       setState(() => _updateInfo = info);
     } catch (_) {
-      // Silently ignore, could show snackbar
     } finally {
       setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _confirmEnableAchievementActivity(bool value) async {
+    final settings = context.read<SettingsProvider>();
+    if (!value) {
+      await settings.setShowAchievementActivity(false);
+      return;
+    }
+    if (settings.hasSeenAchievementQuotaWarning) {
+      await settings.setShowAchievementActivity(true);
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ça va consommer du quota'),
+        content: const Text(
+          'Afficher tes vrais succès récents demande un appel API par jeu '
+          'récemment joué (jusqu\'à 6 requêtes à chaque actualisation), sur '
+          'ton quota gratuit de 150 requêtes/heure. Tu peux le désactiver à '
+          'tout moment ici.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Activer')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await settings.markAchievementQuotaWarningSeen();
+      await settings.setShowAchievementActivity(true);
     }
   }
 
@@ -74,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _SectionCard(
-            icon: Icons.vpn_key_outlined,
+            icon: Icons.vpn_key_rounded,
             title: t.settingsApiKey,
             children: [
               TextField(
@@ -93,12 +124,26 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 12),
               const _QuotaBar(),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Afficher le quota sur le tableau de bord'),
+                subtitle: const Text('Petite ligne discrète sous l\'en-tête'),
+                value: settings.showQuotaOnDashboard,
+                onChanged: (v) => context.read<SettingsProvider>().setShowQuotaOnDashboard(v),
+              ),
+              Text(
+                'Le quota affiché est propre à cet appareil : OpenXBL ne '
+                'permet pas de le synchroniser en temps réel entre PC et mobile.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
             ],
           ),
           const SizedBox(height: 16),
 
           _SectionCard(
-            icon: Icons.language_outlined,
+            icon: Icons.language_rounded,
             title: t.settingsLanguage,
             children: [
               DropdownButton<Locale>(
@@ -119,56 +164,79 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            icon: Icons.palette_outlined,
+            icon: Icons.palette_rounded,
             title: 'Couleur d\'accent',
+            children: [
+              if (settings.supportsSystemAccent) ...[
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Utiliser la couleur du système'),
+                  subtitle: const Text('Reprend l\'accent Windows/macOS'),
+                  value: settings.useSystemAccent,
+                  onChanged: (v) =>
+                      context.read<SettingsProvider>().setUseSystemAccent(v),
+                ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'L\'accent système n\'est disponible que sur Windows/macOS. '
+                    'Sur Android/iOS/Linux, choisis une couleur ci-dessous.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              if (!settings.supportsSystemAccent || !settings.useSystemAccent)
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: accentPresets.map((c) {
+                    final selected =
+                        settings.accentColor.toARGB32() == c.toARGB32();
+                    return GestureDetector(
+                      onTap: () =>
+                          context.read<SettingsProvider>().setAccentColor(c),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: selected
+                              ? Border.all(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  width: 2)
+                              : null,
+                        ),
+                        child: selected
+                            ? const Icon(Icons.check, color: Colors.white, size: 18)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          _SectionCard(
+            icon: Icons.emoji_events_rounded,
+            title: 'Activité',
             children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Utiliser la couleur du système'),
-                subtitle: const Text('Reprend l\'accent Windows/macOS'),
-                value: settings.useSystemAccent,
-                onChanged: (v) =>
-                    context.read<SettingsProvider>().setUseSystemAccent(v),
+                title: const Text('Vrais succès récents sur le tableau de bord'),
+                subtitle: const Text('Coûte du quota API — voir la note ci-dessus'),
+                value: settings.showAchievementActivity,
+                onChanged: _confirmEnableAchievementActivity,
               ),
-              if (!settings.useSystemAccent)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: accentPresets.map((c) {
-                      final selected =
-                          settings.accentColor.toARGB32() == c.toARGB32();
-                      return GestureDetector(
-                        onTap: () =>
-                            context.read<SettingsProvider>().setAccentColor(c),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: selected
-                                ? Border.all(
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                    width: 2)
-                                : null,
-                          ),
-                          child: selected
-                              ? const Icon(Icons.check, color: Colors.white, size: 18)
-                              : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 16),
 
           if (_prefsLoaded)
             _SectionCard(
-              icon: Icons.notifications_outlined,
+              icon: Icons.notifications_rounded,
               title: 'Notifications',
               children: [
                 SwitchListTile(
@@ -218,7 +286,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
 
           _SectionCard(
-            icon: Icons.system_update_outlined,
+            icon: Icons.system_update_rounded,
             title: t.settingsUpdates,
             children: [
               ListTile(
@@ -287,7 +355,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// Reusable modern section card with icon + title header
+// Modernized section card: rounded icon chip + title, matching the app's
+// accent color instead of a flat leading Icon.
 class _SectionCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -297,30 +366,46 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: scheme.primary),
-                const SizedBox(width: 8),
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...children,
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(icon, size: 18, color: scheme.onPrimaryContainer),
+              ),
+              const SizedBox(width: 10),
+              Text(title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
       ),
     );
   }
 }
 
 // Live OpenXBL quota bar (150 req/h on the free tier), driven by the
-// X-RateLimit-* response headers captured in ApiClient.
+// X-RateLimit-* response headers captured in ApiClient. Local to this
+// device only — see the note under the toggle above.
 class _QuotaBar extends StatelessWidget {
   const _QuotaBar();
 

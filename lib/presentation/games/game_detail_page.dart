@@ -122,7 +122,14 @@ class _GameDetailPageState extends State<GameDetailPage> {
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(32),
-                child: Center(child: Text('Aucun succès trouvé pour ce jeu.')),
+                child: Center(
+                  child: Text(
+                    'Aucun succès renvoyé par l\'API pour ce jeu.\n'
+                    'C\'est fréquent sur les jeux Xbox 360 : OpenXBL ne '
+                    'les expose pas toujours via cet endpoint.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
             )
           else

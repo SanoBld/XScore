@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
@@ -21,6 +21,8 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
   VideoPlayerController? _controller;
   String? _videoError;
   bool _downloading = false;
+  bool _muted = false;
+  bool _controlsVisible = true;
 
   String get _sourceUrl => widget.media.mediaUrl.isNotEmpty
       ? widget.media.mediaUrl
@@ -29,9 +31,14 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
   @override
   void initState() {
     super.initState();
+    // True fullscreen: hides the OS status/nav bars so nothing (including
+    // our own AppBar, which we no longer show) blocks the video area —
+    // that "bar bloquant le plein écran" was the default AppBar.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     if (widget.isClip && widget.media.mediaUrl.isNotEmpty) {
       _initVideo(widget.media.mediaUrl);
     }
+    _scheduleAutoHide();
   }
 
   void _initVideo(String url) {
@@ -44,15 +51,51 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
       });
   }
 
+  void _scheduleAutoHide() {
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && widget.isClip && (_controller?.value.isPlaying ?? false)) {
+        setState(() => _controlsVisible = false);
+      }
+    });
+  }
+
+  void _toggleControls() {
+    setState(() => _controlsVisible = !_controlsVisible);
+    if (_controlsVisible) _scheduleAutoHide();
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _muted = !_muted;
+      _controller?.setVolume(_muted ? 0 : 1);
+    });
+  }
+
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _controller?.dispose();
     super.dispose();
   }
 
-  // Downloads the file locally (mobile/desktop) then opens the OS share/save
-  // dialog isn't wired here to avoid extra deps; on desktop it saves to the
-  // Downloads folder, on mobile to the app documents dir and opens it.
+  // Saves to the real, user-visible Downloads folder: Android's public
+  // /storage/emulated/0/Download (path_provider has no public-Downloads
+  // API on Android, so it's addressed directly — this is the same
+  // location the OS Downloads app and file managers show), and
+  // getDownloadsDirectory() on desktop, which already points there.
+  Future<Directory> _resolveDownloadsDir() async {
+    if (Platform.isAndroid) {
+      final dir = Directory('/storage/emulated/0/Download');
+      if (await dir.exists()) return dir;
+      return await getExternalStorageDirectory() ??
+          await getApplicationDocumentsDirectory();
+    }
+    if (Platform.isIOS) {
+      return getApplicationDocumentsDirectory();
+    }
+    return await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+  }
+
   Future<void> _download() async {
     if (_sourceUrl.isEmpty || _downloading) return;
     setState(() => _downloading = true);
@@ -61,27 +104,22 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
 
       final ext = widget.isClip ? 'mp4' : 'png';
-      final fileName = '${widget.media.id.isNotEmpty ? widget.media.id : DateTime.now().millisecondsSinceEpoch}.$ext';
+      final fileName =
+          'xscore_${widget.media.id.isNotEmpty ? widget.media.id : DateTime.now().millisecondsSinceEpoch}.$ext';
 
-      Directory dir;
-      if (Platform.isAndroid || Platform.isIOS) {
-        dir = await getApplicationDocumentsDirectory();
-      } else {
-        dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
-      }
+      final dir = await _resolveDownloadsDir();
       final file = File('${dir.path}/$fileName');
       await file.writeAsBytes(res.bodyBytes);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Enregistré : ${file.path}')),
+        SnackBar(content: Text('Enregistré dans Téléchargements : $fileName')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Téléchargement impossible : $e')),
       );
-      // Fallback: let the browser/OS handle it directly
       try {
         await launchUrl(Uri.parse(_sourceUrl), mode: LaunchMode.externalApplication);
       } catch (_) {}
@@ -92,48 +130,125 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(widget.media.titleName, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(
-            tooltip: 'Télécharger',
-            icon: _downloading
-                ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.download_outlined),
-            onPressed: _downloading ? null : _download,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
-          child: widget.isClip ? _buildVideo() : _buildImage(),
+      body: GestureDetector(
+        onTap: _toggleControls,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(child: widget.isClip ? _buildVideo() : _buildImage()),
+
+            // YouTube-style overlay: back + title fade in/out, nothing
+            // fixed blocking the frame when hidden.
+            AnimatedOpacity(
+              opacity: _controlsVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: !_controlsVisible,
+                child: Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.of(context).padding.top + 4,
+                        left: 4,
+                        right: 4,
+                        bottom: 8,
+                      ),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.black87, Colors.transparent],
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          Expanded(
+                            child: Text(
+                              widget.media.titleName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white, fontSize: 15),
+                            ),
+                          ),
+                          if (widget.isClip)
+                            IconButton(
+                              icon: Icon(
+                                _muted ? Icons.volume_off : Icons.volume_up,
+                                color: Colors.white,
+                              ),
+                              onPressed: _toggleMute,
+                            ),
+                          IconButton(
+                            icon: _downloading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.download_outlined, color: Colors.white),
+                            onPressed: _downloading ? null : _download,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    if (widget.isClip && _controller?.value.isInitialized == true)
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(12, 24, 12, 20),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [Colors.black87, Colors.transparent],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _controller!.value.isPlaying
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => setState(() {
+                                _controller!.value.isPlaying
+                                    ? _controller!.pause()
+                                    : _controller!.play();
+                                if (_controller!.value.isPlaying) _scheduleAutoHide();
+                              }),
+                            ),
+                            Expanded(
+                              child: VideoProgressIndicator(
+                                _controller!,
+                                allowScrubbing: true,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                colors: VideoProgressColors(
+                                  playedColor: scheme.primary,
+                                  bufferedColor: Colors.white24,
+                                  backgroundColor: Colors.white12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      bottomNavigationBar: widget.isClip && _controller?.value.isInitialized == true
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: VideoProgressIndicator(_controller!, allowScrubbing: true),
-              ),
-            )
-          : null,
-      floatingActionButton: widget.isClip && _controller?.value.isInitialized == true
-          ? FloatingActionButton(
-              onPressed: () => setState(() {
-                _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
-              }),
-              child: Icon(
-                _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-              ),
-            )
-          : null,
     );
   }
 
@@ -171,12 +286,6 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
   }
 
   Widget _buildImage() {
-    // Full mediaUrl (original quality) instead of the compressed thumbnail.
-    // LayoutBuilder + SizedBox.expand instead of a bare InteractiveViewer:
-    // without a bounded/expanded size, InteractiveViewer's child sizes
-    // itself to the image's natural resolution first, causing the visible
-    // "frame"/jump before it settles — this keeps it filling the screen
-    // immediately from the first frame.
     final url = _sourceUrl;
     if (url.isEmpty) {
       return const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48);
@@ -191,8 +300,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
             child: CachedNetworkImage(
               imageUrl: url,
               fit: BoxFit.contain,
-              placeholder: (_, __) =>
-                  const Center(child: CircularProgressIndicator()),
+              placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
               errorWidget: (_, __, ___) => const Center(
                 child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
               ),
