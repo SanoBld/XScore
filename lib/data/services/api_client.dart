@@ -27,7 +27,12 @@ class ApiClient {
   dynamic _handle(http.Response res) {
     if (res.statusCode >= 200 && res.statusCode < 300) {
       if (res.body.isEmpty) return null;
-      return jsonDecode(res.body);
+      final decoded = jsonDecode(res.body);
+      // Current OpenXBL API wraps every payload as {"content": {...}, "code": 200}
+      if (decoded is Map<String, dynamic> && decoded.containsKey('content')) {
+        return decoded['content'];
+      }
+      return decoded;
     }
     throw ApiException(res.statusCode, res.body);
   }

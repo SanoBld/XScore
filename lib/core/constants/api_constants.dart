@@ -3,7 +3,7 @@ class ApiConstants {
   ApiConstants._();
 
   // OpenXBL base
-  static const openXblBase = 'https://xbl.io/api/v2';
+  static const openXblBase = 'https://api.xbl.io/v2';
   static const authHeader = 'X-Authorization';
 
   // OpenXBL routes
@@ -15,8 +15,7 @@ class ApiConstants {
   static const screenshots = '/dvr/screenshots';
 
   // Titles played + achievement progress per game (Games tab)
-  static String titleHistory(String xuid) =>
-      '/achievements/player/$xuid/titleHistory';
+  static String titleHistory(String xuid) => '/player/titleHistory/$xuid';
 
   // Bulk presence lookup (comma-separated xuids)
   static const presence = '/presence';
