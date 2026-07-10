@@ -10,7 +10,9 @@ class ApiConstants {
   static const account = '/account';
   static const friends = '/friends';
   static const friendSearch = '/friends/search';
-  static const achievements = '/achievements';
+  // Achievements for one title: /achievements/player/{xuid}/title/{titleId}
+  static String achievementsForTitle(String xuid, String titleId) =>
+      '/achievements/player/$xuid/title/$titleId';
   static const gameClips = '/dvr/gameclips';
   static const screenshots = '/dvr/screenshots';
 

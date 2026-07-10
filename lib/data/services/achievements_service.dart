@@ -8,13 +8,12 @@ class AchievementsService {
   final ApiClient client;
   AchievementsService(this.client);
 
-  // Same pattern as /account and /account/{xuid}: own achievements need no
-  // xuid, but the OpenXBL wrapper still exposes /achievements/{xuid} — pass
-  // xuid explicitly to be safe, filtered to one title via query param.
+  // Correct OpenXBL route is path-based, not /achievements/{xuid}?titleId=:
+  // /achievements/player/{xuid}/title/{titleId}. The old query-param form
+  // returned 200 with an empty list, which is why the UI showed "0/0".
   Future<List<Achievement>> getAchievements(String xuid, String titleId) async {
     final json = await client.get(
-      '${ApiConstants.achievements}/$xuid',
-      query: {'titleId': titleId},
+      ApiConstants.achievementsForTitle(xuid, titleId),
     );
     final list = (json['achievements'] as List?) ?? [];
     return list.map((e) => Achievement.fromJson(e)).toList();

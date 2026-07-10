@@ -4,9 +4,26 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/models/title_summary.dart';
 import '../providers/xbox_data_provider.dart';
+import '../providers/settings_provider.dart';
 import 'game_detail_page.dart';
 
 enum _GameFilter { recent, completed, gamerscore, alpha, inProgress }
+
+const _filterLabels = {
+  _GameFilter.recent: 'Récents',
+  _GameFilter.completed: 'Terminés (100%)',
+  _GameFilter.inProgress: 'En cours',
+  _GameFilter.gamerscore: 'Gamerscore',
+  _GameFilter.alpha: 'A-Z',
+};
+
+const _filterIcons = {
+  _GameFilter.recent: Icons.history,
+  _GameFilter.completed: Icons.check_circle_outline,
+  _GameFilter.inProgress: Icons.timelapse,
+  _GameFilter.gamerscore: Icons.emoji_events_outlined,
+  _GameFilter.alpha: Icons.sort_by_alpha,
+};
 
 class GamesPage extends StatefulWidget {
   const GamesPage({super.key});
@@ -41,54 +58,68 @@ class _GamesPageState extends State<GamesPage> {
     return list;
   }
 
+  Future<void> _openFilterSheet() async {
+    final chosen = await showModalBottomSheet<_GameFilter>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Trier / filtrer',
+                    style: Theme.of(ctx).textTheme.titleMedium),
+              ),
+            ),
+            ..._GameFilter.values.map((f) => ListTile(
+                  leading: Icon(_filterIcons[f]),
+                  title: Text(_filterLabels[f]!),
+                  trailing: _filter == f ? const Icon(Icons.check) : null,
+                  onTap: () => Navigator.pop(ctx, f),
+                )),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (chosen != null) setState(() => _filter = chosen);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final data = context.watch<XboxDataProvider>();
+    final settings = context.watch<SettingsProvider>();
     final scheme = Theme.of(context).colorScheme;
     final titles = _apply(data.titles);
+    final isGrid = settings.gamesGridLayout;
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.gamesTitle)),
+      appBar: AppBar(
+        title: Text(t.gamesTitle),
+        actions: [
+          IconButton(
+            tooltip: isGrid ? 'Vue liste' : 'Vue grille',
+            icon: Icon(isGrid ? Icons.view_list_outlined : Icons.grid_view_outlined),
+            onPressed: () => context
+                .read<SettingsProvider>()
+                .setGamesGridLayout(!isGrid),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FilterChip(
-                    label: 'Récents',
-                    icon: Icons.history,
-                    selected: _filter == _GameFilter.recent,
-                    onTap: () => setState(() => _filter = _GameFilter.recent),
-                  ),
-                  _FilterChip(
-                    label: 'Terminés (100%)',
-                    icon: Icons.check_circle_outline,
-                    selected: _filter == _GameFilter.completed,
-                    onTap: () => setState(() => _filter = _GameFilter.completed),
-                  ),
-                  _FilterChip(
-                    label: 'En cours',
-                    icon: Icons.timelapse,
-                    selected: _filter == _GameFilter.inProgress,
-                    onTap: () => setState(() => _filter = _GameFilter.inProgress),
-                  ),
-                  _FilterChip(
-                    label: 'Gamerscore',
-                    icon: Icons.emoji_events_outlined,
-                    selected: _filter == _GameFilter.gamerscore,
-                    onTap: () => setState(() => _filter = _GameFilter.gamerscore),
-                  ),
-                  _FilterChip(
-                    label: 'A-Z',
-                    icon: Icons.sort_by_alpha,
-                    selected: _filter == _GameFilter.alpha,
-                    onTap: () => setState(() => _filter = _GameFilter.alpha),
-                  ),
-                ],
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _openFilterSheet,
+                icon: Icon(_filterIcons[_filter], size: 18),
+                label: Text(_filterLabels[_filter]!),
               ),
             ),
           ),
@@ -104,69 +135,9 @@ class _GamesPageState extends State<GamesPage> {
                             child: Center(child: Text('—')),
                           )
                         ])
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: titles.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, i) {
-                            final g = titles[i];
-                            return Card(
-                              child: ListTile(
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) => GameDetailPage(title: g)),
-                                ),
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: g.boxArtUrl != null
-                                      ? CachedNetworkImage(
-                                          imageUrl: g.boxArtUrl!,
-                                          width: 48,
-                                          height: 48,
-                                          fit: BoxFit.cover,
-                                          placeholder: (_, __) => Container(
-                                              width: 48,
-                                              height: 48,
-                                              color: scheme.surfaceContainerHigh),
-                                          errorWidget: (_, __, ___) => Container(
-                                              width: 48,
-                                              height: 48,
-                                              color: scheme.surfaceContainerHigh,
-                                              child: const Icon(Icons.videogame_asset)),
-                                        )
-                                      : Container(
-                                          width: 48,
-                                          height: 48,
-                                          color: scheme.surfaceContainerHigh,
-                                          child: const Icon(Icons.videogame_asset),
-                                        ),
-                                ),
-                                title: Text(g.name,
-                                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: (g.progressPercentage / 100).clamp(0, 1),
-                                        minHeight: 6,
-                                        color: g.progressPercentage >= 100
-                                            ? Colors.amber
-                                            : null,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Text(
-                                  '${g.currentGamerscore}/${g.totalGamerscore}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                      : isGrid
+                          ? _GamesGrid(titles: titles, scheme: scheme)
+                          : _GamesList(titles: titles, scheme: scheme),
             ),
           ),
         ],
@@ -175,24 +146,133 @@ class _GamesPageState extends State<GamesPage> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-  const _FilterChip(
-      {required this.label, required this.icon, required this.selected, required this.onTap});
+class _GamesList extends StatelessWidget {
+  final List<TitleSummary> titles;
+  final ColorScheme scheme;
+  const _GamesList({required this.titles, required this.scheme});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        avatar: Icon(icon, size: 16),
-        selected: selected,
-        onSelected: (_) => onTap(),
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: titles.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final g = titles[i];
+        return Card(
+          child: ListTile(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => GameDetailPage(title: g)),
+            ),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: g.boxArtUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: g.boxArtUrl!,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                          width: 48, height: 48, color: scheme.surfaceContainerHigh),
+                      errorWidget: (_, __, ___) => Container(
+                          width: 48,
+                          height: 48,
+                          color: scheme.surfaceContainerHigh,
+                          child: const Icon(Icons.videogame_asset)),
+                    )
+                  : Container(
+                      width: 48,
+                      height: 48,
+                      color: scheme.surfaceContainerHigh,
+                      child: const Icon(Icons.videogame_asset),
+                    ),
+            ),
+            title: Text(g.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: (g.progressPercentage / 100).clamp(0, 1),
+                    minHeight: 6,
+                    color: g.progressPercentage >= 100 ? Colors.amber : null,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Text(
+              '${g.currentGamerscore}/${g.totalGamerscore}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Alternate display mode requested by the user, persisted via SettingsProvider
+class _GamesGrid extends StatelessWidget {
+  final List<TitleSummary> titles;
+  final ColorScheme scheme;
+  const _GamesGrid({required this.titles, required this.scheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.68,
       ),
+      itemCount: titles.length,
+      itemBuilder: (context, i) {
+        final g = titles[i];
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => GameDetailPage(title: g)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: g.boxArtUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: g.boxArtUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorWidget: (_, __, ___) =>
+                              Container(color: scheme.surfaceContainerHigh),
+                        )
+                      : Container(
+                          color: scheme.surfaceContainerHigh,
+                          child: const Icon(Icons.videogame_asset),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(g.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (g.progressPercentage / 100).clamp(0, 1),
+                  minHeight: 4,
+                  color: g.progressPercentage >= 100 ? Colors.amber : null,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -6,8 +6,35 @@ import '../providers/xbox_data_provider.dart';
 import '../../data/models/friend.dart';
 import 'friend_profile_page.dart';
 
-class SocialPage extends StatelessWidget {
+enum _FriendFilter { online, alpha, gamerscore }
+
+class SocialPage extends StatefulWidget {
   const SocialPage({super.key});
+
+  @override
+  State<SocialPage> createState() => _SocialPageState();
+}
+
+class _SocialPageState extends State<SocialPage> {
+  _FriendFilter _filter = _FriendFilter.online;
+
+  List<Friend> _apply(List<Friend> friends) {
+    final list = [...friends];
+    switch (_filter) {
+      case _FriendFilter.online:
+        list.sort((a, b) => a.isOnline == b.isOnline
+            ? a.gamertag.compareTo(b.gamertag)
+            : (a.isOnline ? -1 : 1));
+        break;
+      case _FriendFilter.alpha:
+        list.sort((a, b) => a.gamertag.toLowerCase().compareTo(b.gamertag.toLowerCase()));
+        break;
+      case _FriendFilter.gamerscore:
+        list.sort((a, b) => b.gamerscore.compareTo(a.gamerscore));
+        break;
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +42,7 @@ class SocialPage extends StatelessWidget {
     final data = context.watch<XboxDataProvider>();
     final scheme = Theme.of(context).colorScheme;
     final online = data.friends.where((f) => f.isOnline).toList();
-    final all = data.sortedFriends;
+    final all = _apply(data.friends);
 
     return Scaffold(
       appBar: AppBar(title: Text(t.socialTitle)),
@@ -99,9 +126,40 @@ class SocialPage extends StatelessWidget {
                 const SizedBox(height: 20),
               ],
 
-              Text('Tous les amis (${all.length})',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tous les amis (${all.length})',
+                      style: Theme.of(context).textTheme.titleMedium),
+                ],
+              ),
               const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _FilterChip(
+                      label: 'En ligne d\'abord',
+                      icon: Icons.circle,
+                      selected: _filter == _FriendFilter.online,
+                      onTap: () => setState(() => _filter = _FriendFilter.online),
+                    ),
+                    _FilterChip(
+                      label: 'A-Z',
+                      icon: Icons.sort_by_alpha,
+                      selected: _filter == _FriendFilter.alpha,
+                      onTap: () => setState(() => _filter = _FriendFilter.alpha),
+                    ),
+                    _FilterChip(
+                      label: 'Gamerscore',
+                      icon: Icons.emoji_events_outlined,
+                      selected: _filter == _FriendFilter.gamerscore,
+                      onTap: () => setState(() => _filter = _FriendFilter.gamerscore),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               if (all.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(32),
@@ -182,6 +240,28 @@ class SocialPage extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip(
+      {required this.label, required this.icon, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        avatar: Icon(icon, size: 16),
+        selected: selected,
+        onSelected: (_) => onTap(),
       ),
     );
   }

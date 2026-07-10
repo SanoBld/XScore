@@ -20,10 +20,20 @@ class GameClip {
         (json['screenshotUris'] as List?) ??
         [];
 
-    // Thumbnails/media URIs often list several resolutions — take the
-    // largest (last one) for quality instead of always the first.
+    // gameClipUris/screenshotUris mix several entries (thumbnails, previews,
+    // full download) tagged by "uriType". Picking list.last isn't reliable —
+    // OpenXBL doesn't guarantee ordering, so a low-res/broken preview URI
+    // could be selected, which is what made playback fail. Prefer the
+    // "Download" (full quality) entry explicitly, else fall back safely.
     String bestUrl(List list) {
       if (list.isEmpty) return '';
+      final download = list.firstWhere(
+        (e) => (e['uriType'] ?? '').toString().toLowerCase() == 'download',
+        orElse: () => null,
+      );
+      if (download != null && (download['uri'] ?? '').toString().isNotEmpty) {
+        return download['uri'];
+      }
       return list.last['uri'] ?? list.first['uri'] ?? '';
     }
 

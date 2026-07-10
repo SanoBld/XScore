@@ -23,12 +23,14 @@ class SettingsProvider extends ChangeNotifier {
   final ThemeMode _themeMode = ThemeMode.system;
   Color? _accentColor; // null = use system accent color
   bool _useSystemAccent = true;
+  bool _gamesGridLayout = false; // false = liste, true = grille
 
   String? get apiKey => _apiKey;
   Locale get locale => _locale;
   ThemeMode get themeMode => _themeMode;
   bool get hasApiKey => (_apiKey ?? '').isNotEmpty;
   bool get useSystemAccent => _useSystemAccent;
+  bool get gamesGridLayout => _gamesGridLayout;
 
   // Resolved accent: system color if enabled, else the chosen preset
   Color get accentColor => _useSystemAccent
@@ -45,7 +47,15 @@ class SettingsProvider extends ChangeNotifier {
     _useSystemAccent = prefs.getBool('use_system_accent') ?? true;
     final storedColor = prefs.getInt('accent_color');
     if (storedColor != null) _accentColor = Color(storedColor);
+    _gamesGridLayout = prefs.getBool('games_grid_layout') ?? false;
 
+    notifyListeners();
+  }
+
+  Future<void> setGamesGridLayout(bool value) async {
+    _gamesGridLayout = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('games_grid_layout', value);
     notifyListeners();
   }
 
