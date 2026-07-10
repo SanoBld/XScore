@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/models/game_clip.dart';
 import '../providers/xbox_data_provider.dart';
+import 'media_viewer_page.dart';
 
 class MediaPage extends StatelessWidget {
   const MediaPage({super.key});
@@ -26,8 +28,8 @@ class MediaPage extends StatelessWidget {
             return RefreshIndicator(
               onRefresh: () => data.loadAll(force: true),
               child: TabBarView(children: [
-                _MediaGrid(items: data.gameClips, loading: data.loading),
-                _MediaGrid(items: data.screenshots, loading: data.loading),
+                _MediaGrid(items: data.gameClips, loading: data.loading, isClip: true),
+                _MediaGrid(items: data.screenshots, loading: data.loading, isClip: false),
               ]),
             );
           },
@@ -40,7 +42,8 @@ class MediaPage extends StatelessWidget {
 class _MediaGrid extends StatelessWidget {
   final List<GameClip> items;
   final bool loading;
-  const _MediaGrid({required this.items, required this.loading});
+  final bool isClip;
+  const _MediaGrid({required this.items, required this.loading, required this.isClip});
 
   @override
   Widget build(BuildContext context) {
@@ -63,30 +66,40 @@ class _MediaGrid extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (context, i) {
         final m = items[i];
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              m.thumbnailUrl.isNotEmpty
-                  ? Image.network(m.thumbnailUrl, fit: BoxFit.cover)
-                  : Container(color: Theme.of(context).colorScheme.surfaceContainerHigh),
-              Positioned(
-                left: 6,
-                bottom: 6,
-                right: 6,
-                child: Text(
-                  m.titleName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    shadows: [Shadow(blurRadius: 4, color: Colors.black)],
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => MediaViewerPage(media: m, isClip: isClip)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                m.thumbnailUrl.isNotEmpty
+                    ? CachedNetworkImage(imageUrl: m.thumbnailUrl, fit: BoxFit.cover)
+                    : Container(color: Theme.of(context).colorScheme.surfaceContainerHigh),
+                if (isClip)
+                  const Center(
+                    child: Icon(Icons.play_circle_fill, color: Colors.white70, size: 36),
+                  ),
+                Positioned(
+                  left: 6,
+                  bottom: 6,
+                  right: 6,
+                  child: Text(
+                    m.titleName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black)],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

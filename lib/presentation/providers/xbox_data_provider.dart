@@ -14,18 +14,19 @@ import '../../data/models/game_clip.dart';
 class XboxDataProvider extends ChangeNotifier {
   static const _cacheTtl = Duration(minutes: 5);
 
-  late final ApiClient _client;
+  late final ApiClient client;
   late final XboxProfileService _profileService;
-  late final AchievementsService _achievementsService;
+  late final AchievementsService achievementsService;
   late final SocialService _socialService;
   late final MediaService _mediaService;
 
   XboxDataProvider(String apiKey) {
-    _client = ApiClient(apiKey: apiKey);
-    _profileService = XboxProfileService(_client);
-    _achievementsService = AchievementsService(_client);
-    _socialService = SocialService(_client);
-    _mediaService = MediaService(_client);
+    client = ApiClient(apiKey: apiKey);
+    _profileService = XboxProfileService(client);
+    achievementsService = AchievementsService(client);
+    _socialService = SocialService(client);
+    _mediaService = MediaService(client);
+    client.rateLimit.addListener(notifyListeners);
   }
 
   PlayerProfile? profile;
@@ -35,7 +36,6 @@ class XboxDataProvider extends ChangeNotifier {
   List<GameClip> screenshots = [];
 
   bool loading = false;
-  // Per-section errors so one broken endpoint doesn't hide the others
   String? profileError;
   String? titlesError;
   String? friendsError;
@@ -45,8 +45,11 @@ class XboxDataProvider extends ChangeNotifier {
   bool get isStale =>
       _lastLoad == null || DateTime.now().difference(_lastLoad!) > _cacheTtl;
 
-  // Loads everything needed across tabs. Each section is fetched and
-  // caught independently: a broken endpoint no longer blanks everything.
+  // Quota OpenXBL (150/h gratuit)
+  int? get quotaLimit => client.rateLimit.limit;
+  int? get quotaSpent => client.rateLimit.spent;
+  int? get quotaRemaining => client.rateLimit.remaining;
+
   Future<void> loadAll({bool force = false}) async {
     if (!force && !isStale && profile != null) return;
 
@@ -59,19 +62,15 @@ class XboxDataProvider extends ChangeNotifier {
 
     try {
       profile = await _profileService.getMyProfile();
-      debugPrint(
-          'XScore profile loaded: gamertag="${profile!.gamertag}" xuid=${profile!.xuid} gamerscore=${profile!.gamerscore}');
     } catch (e) {
       profileError = '$e';
-      debugPrint('XScore profile ERROR: $e');
     }
 
     if (profile != null) {
       try {
-        titles = await _achievementsService.getTitleHistory(profile!.xuid);
+        titles = await achievementsService.getTitleHistory(profile!.xuid);
       } catch (e) {
         titlesError = '$e';
-        debugPrint('XScore titleHistory ERROR: $e');
       }
     }
 
@@ -79,7 +78,6 @@ class XboxDataProvider extends ChangeNotifier {
       friends = await _socialService.getFriends();
     } catch (e) {
       friendsError = '$e';
-      debugPrint('XScore friends ERROR: $e');
     }
 
     try {
@@ -91,7 +89,6 @@ class XboxDataProvider extends ChangeNotifier {
       screenshots = media[1];
     } catch (e) {
       mediaError = '$e';
-      debugPrint('XScore media ERROR: $e');
     }
 
     _lastLoad = DateTime.now();
@@ -99,13 +96,10 @@ class XboxDataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Kept for pages still referencing a single generic error
   String? get error => profileError;
 
-  // Dashboard: top 5 recently played
   List<TitleSummary> get recentTitles => titles.take(5).toList();
 
-  // Social: online friends first
   List<Friend> get sortedFriends {
     final list = [...friends];
     list.sort((a, b) => a.isOnline == b.isOnline
@@ -114,5 +108,12 @@ class XboxDataProvider extends ChangeNotifier {
     return list;
   }
 
-  void dispose2() => _client.dispose();
+  int get onlineFriendsCount => friends.where((f) => f.isOnline).length;
+
+  @override
+  void dispose() {
+    client.rateLimit.removeListener(notifyListeners);
+    client.dispose();
+    super.dispose();
+  }
 }

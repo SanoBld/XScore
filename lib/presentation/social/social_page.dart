@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/xbox_data_provider.dart';
+import 'friend_profile_page.dart';
 
 class SocialPage extends StatelessWidget {
   const SocialPage({super.key});
@@ -19,8 +21,9 @@ class SocialPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            // OpenXBL n'expose pas d'endpoint de messagerie (chat Xbox non
-            // disponible via cette API non-officielle) — impossible à implémenter.
+            // OpenXBL n'expose pas d'endpoint de messagerie classique côté
+            // amis (le chat Xbox existe côté /v2/conversations mais nécessite
+            // un flux SSO app, pas une clé perso) — non implémenté ici.
             Card(
               color: scheme.surfaceContainerLow,
               child: const Padding(
@@ -31,7 +34,7 @@ class SocialPage extends StatelessWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "Le chat Xbox n'est pas accessible via cette API.",
+                        "Messagerie Xbox non disponible avec une clé personnelle.",
                         style: TextStyle(fontSize: 12),
                       ),
                     ),
@@ -45,6 +48,11 @@ class SocialPage extends StatelessWidget {
                 padding: EdgeInsets.all(32),
                 child: Center(child: CircularProgressIndicator()),
               )
+            else if (data.friendsError != null)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(data.friendsError!, style: TextStyle(color: scheme.error)),
+              )
             else if (data.friends.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(32),
@@ -53,12 +61,15 @@ class SocialPage extends StatelessWidget {
             else
               ...data.sortedFriends.map((f) => Card(
                     child: ListTile(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => FriendProfilePage(friend: f)),
+                      ),
                       leading: Stack(
                         children: [
                           CircleAvatar(
                             backgroundColor: scheme.primaryContainer,
                             backgroundImage: f.gamerpicUrl != null
-                                ? NetworkImage(f.gamerpicUrl!)
+                                ? CachedNetworkImageProvider(f.gamerpicUrl!)
                                 : null,
                             child: f.gamerpicUrl == null
                                 ? const Icon(Icons.person)
@@ -83,6 +94,7 @@ class SocialPage extends StatelessWidget {
                       ),
                       title: Text(f.gamertag),
                       subtitle: Text('${f.gamerscore} G'),
+                      trailing: const Icon(Icons.chevron_right),
                     ),
                   )),
           ],

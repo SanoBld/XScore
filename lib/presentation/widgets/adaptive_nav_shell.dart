@@ -1,37 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../dashboard/dashboard_page.dart';
 import '../games/games_page.dart';
 import '../social/social_page.dart';
 import '../media/media_page.dart';
-import '../providers/settings_provider.dart';
-import '../providers/xbox_data_provider.dart';
 import '../../l10n/app_localizations.dart';
 
 // Adaptive shell: NavigationRail on wide screens, NavigationBar on mobile
-class AdaptiveNavShell extends StatelessWidget {
+class AdaptiveNavShell extends StatefulWidget {
   const AdaptiveNavShell({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final apiKey = context.read<SettingsProvider>().apiKey;
-    // Provider créé ici (pas dans main.dart) : évite le crash "écran gris"
-    // qui survenait quand XboxDataProvider n'était pas dans l'arbre.
-    return ChangeNotifierProvider<XboxDataProvider>(
-      create: (_) => XboxDataProvider(apiKey ?? ''),
-      child: const _NavShellBody(),
-    );
-  }
+  State<AdaptiveNavShell> createState() => _AdaptiveNavShellState();
 }
 
-class _NavShellBody extends StatefulWidget {
-  const _NavShellBody();
-
-  @override
-  State<_NavShellBody> createState() => _NavShellBodyState();
-}
-
-class _NavShellBodyState extends State<_NavShellBody> {
+class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
   int _index = 0;
 
   static const _pages = [

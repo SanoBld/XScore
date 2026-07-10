@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/xbox_data_provider.dart';
+import 'game_detail_page.dart';
 
 class GamesPage extends StatelessWidget {
   const GamesPage({super.key});
@@ -33,11 +35,23 @@ class GamesPage extends StatelessWidget {
                       final g = data.titles[i];
                       return Card(
                         child: ListTile(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => GameDetailPage(title: g)),
+                          ),
                           leading: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: g.boxArtUrl != null
-                                ? Image.network(g.boxArtUrl!,
-                                    width: 48, height: 48, fit: BoxFit.cover)
+                                ? CachedNetworkImage(
+                                    imageUrl: g.boxArtUrl!,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                        width: 48,
+                                        height: 48,
+                                        color: scheme.surfaceContainerHigh),
+                                  )
                                 : Container(
                                     width: 48,
                                     height: 48,
