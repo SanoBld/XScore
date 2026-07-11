@@ -30,9 +30,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   Future<void> _load() async {
     final data = context.read<XboxDataProvider>();
     try {
-      final p = await data.achievementsService.client
-          .get('/account/${widget.friend.xuid}');
-      if (mounted) setState(() => _profile = PlayerProfile.fromAccountJson(p));
+      final p = await data.profileService.getProfileByXuid(widget.friend.xuid);
+      if (mounted) setState(() => _profile = p);
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     }

@@ -7,14 +7,24 @@ class MediaService {
   final ApiClient client;
   MediaService(this.client);
 
-  Future<List<GameClip>> getGameClips() async {
-    final json = await client.get(ApiConstants.gameClips);
+  Future<List<GameClip>> getGameClips({bool force = false}) async {
+    final json = await client.get(
+      ApiConstants.gameClips,
+      cacheKey: 'gameclips',
+      cacheTtl: const Duration(minutes: 10),
+      bypassCache: force,
+    );
     final list = (json['gameClips'] as List?) ?? [];
     return list.map((e) => GameClip.fromJson(e)).toList();
   }
 
-  Future<List<GameClip>> getScreenshots() async {
-    final json = await client.get(ApiConstants.screenshots);
+  Future<List<GameClip>> getScreenshots({bool force = false}) async {
+    final json = await client.get(
+      ApiConstants.screenshots,
+      cacheKey: 'screenshots',
+      cacheTtl: const Duration(minutes: 10),
+      bypassCache: force,
+    );
     final list = (json['screenshots'] as List?) ?? [];
     return list.map((e) => GameClip.fromJson(e)).toList();
   }

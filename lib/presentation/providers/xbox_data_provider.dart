@@ -16,14 +16,14 @@ class XboxDataProvider extends ChangeNotifier {
   static const _cacheTtl = Duration(minutes: 5);
 
   late final ApiClient client;
-  late final XboxProfileService _profileService;
+  late final XboxProfileService profileService;
   late final AchievementsService achievementsService;
   late final SocialService _socialService;
   late final MediaService _mediaService;
 
   XboxDataProvider(String apiKey) {
     client = ApiClient(apiKey: apiKey);
-    _profileService = XboxProfileService(client);
+    profileService = XboxProfileService(client);
     achievementsService = AchievementsService(client);
     _socialService = SocialService(client);
     _mediaService = MediaService(client);
@@ -62,29 +62,29 @@ class XboxDataProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      profile = await _profileService.getMyProfile();
+      profile = await profileService.getMyProfile(force: force);
     } catch (e) {
       profileError = '$e';
     }
 
     if (profile != null) {
       try {
-        titles = await achievementsService.getTitleHistory(profile!.xuid);
+        titles = await achievementsService.getTitleHistory(profile!.xuid, force: force);
       } catch (e) {
         titlesError = '$e';
       }
     }
 
     try {
-      friends = await _socialService.getFriends();
+      friends = await _socialService.getFriends(force: force);
     } catch (e) {
       friendsError = '$e';
     }
 
     try {
       final media = await Future.wait([
-        _mediaService.getGameClips(),
-        _mediaService.getScreenshots(),
+        _mediaService.getGameClips(force: force),
+        _mediaService.getScreenshots(force: force),
       ]);
       gameClips = media[0];
       screenshots = media[1];

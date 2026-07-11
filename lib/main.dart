@@ -25,12 +25,32 @@ Future<void> main() async {
 // honoring it literally.
 const _monochromeFallback = Color(0xFF2962FF);
 
-bool _isNearGrayscale(Color c) {
-  final hsl = HSLColor.fromColor(c);
-  return hsl.saturation < 0.12;
+// M3's tonal mapping already desaturates "primary" quite a bit even for
+// colorful wallpapers — checking only primary's saturation against a loose
+// threshold was flagging real (but pastel) colors as monochrome, which is
+// why the app looked stuck on the fallback blue. Comparing hue spread
+// across primary/secondary/tertiary is a much more reliable signal: a
+// genuinely black & white wallpaper produces three colors clustered on
+// nearly the same hue, whereas any colorful wallpaper spreads them apart
+// even when each one is individually muted.
+bool _isEffectivelyMonochrome(ColorScheme s) {
+  final hues = [s.primary, s.secondary, s.tertiary].map((c) => HSLColor.fromColor(c).hue);
+  final maxSat = [s.primary, s.secondary, s.tertiary]
+      .map((c) => HSLColor.fromColor(c).saturation)
+      .reduce((a, b) => a > b ? a : b);
+  if (maxSat > 0.10) return false; // something in the palette has real color
+  double hueSpread(double a, double b) {
+    final d = (a - b).abs();
+    return d > 180 ? 360 - d : d;
+  }
+  final list = hues.toList();
+  final spread = [
+    hueSpread(list[0], list[1]),
+    hueSpread(list[1], list[2]),
+    hueSpread(list[0], list[2]),
+  ].reduce((a, b) => a > b ? a : b);
+  return spread < 20; // hues barely differ AND everything is desaturated
 }
-
-Color _sanitizeDynamicSeed(Color seed) => _isNearGrayscale(seed) ? _monochromeFallback : seed;
 
 class XScoreApp extends StatelessWidget {
   final SettingsProvider settings;
@@ -57,17 +77,17 @@ class XScoreApp extends StatelessWidget {
               // If the device palette is near-grayscale, rebuild a scheme
               // from the vivid fallback seed instead of using the flat
               // dynamic scheme as-is.
-              final effectiveLightDynamic = (useAndroidDynamic && _isNearGrayscale(lightDynamic!.primary))
+              final effectiveLightDynamic = (useAndroidDynamic && _isEffectivelyMonochrome(lightDynamic!))
                   ? ColorScheme.fromSeed(seedColor: _monochromeFallback)
                   : lightDynamic;
               final effectiveDarkDynamic = (useAndroidDynamic &&
                       darkDynamic != null &&
-                      _isNearGrayscale(darkDynamic.primary))
+                      _isEffectivelyMonochrome(darkDynamic))
                   ? ColorScheme.fromSeed(
                       seedColor: _monochromeFallback, brightness: Brightness.dark)
                   : darkDynamic;
 
-              final accentColor = _sanitizeDynamicSeed(settings.accentColor);
+              final accentColor = settings.accentColor;
 
               final lightScheme = useAndroidDynamic
                   ? effectiveLightDynamic!

@@ -530,12 +530,51 @@ class _QuotaLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    if (data.quotaLimit == null || data.quotaSpent == null) {
+    final limit = data.quotaLimit;
+    final spent = data.quotaSpent;
+    if (limit == null || spent == null) {
       return const SizedBox.shrink();
     }
-    return Text(
-      'Quota OpenXBL (cet appareil) : ${data.quotaSpent}/${data.quotaLimit} · reste ${data.quotaRemaining}',
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+    final ratio = (spent / limit).clamp(0, 1).toDouble();
+    final color = ratio > 0.85
+        ? scheme.error
+        : ratio > 0.6
+            ? Colors.orange
+            : scheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Quota OpenXBL (cet appareil)',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: scheme.onSurfaceVariant)),
+              Text('$spent/$limit',
+                  style: Theme.of(context).textTheme.labelMedium),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              color: color,
+              backgroundColor: scheme.surfaceContainerHighest,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
