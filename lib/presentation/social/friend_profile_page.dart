@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -54,9 +55,45 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
         ? 0.0
         : titles.map((t) => t.progressPercentage).reduce((a, b) => a + b) / titles.length;
 
+    final coverUrl = recentTitles.isNotEmpty ? recentTitles.first.boxArtUrl : f.gamerpicUrl;
+
     return Scaffold(
       appBar: AppBar(title: Text(f.gamertag)),
-      body: ListView(
+      body: Stack(
+        children: [
+          if (coverUrl != null && coverUrl.isNotEmpty)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 240,
+              child: ClipRect(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover),
+                    BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                      child: Container(color: Colors.black.withValues(alpha: 0.35)),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Theme.of(context).scaffoldBackgroundColor,
+                          ],
+                          stops: const [0.35, 1.0],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Center(
@@ -161,6 +198,8 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
                 ),
               ),
             ),
+        ],
+      ),
         ],
       ),
     );

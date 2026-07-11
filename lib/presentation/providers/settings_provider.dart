@@ -31,6 +31,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _showAchievementActivity = false;
   bool _hasSeenAchievementQuotaWarning = false;
   bool _showQuotaOnDashboard = false;
+  bool _showDashboardCoverBackground = true;
 
   String? get apiKey => _apiKey;
   String? get igdbClientId => _igdbClientId;
@@ -45,6 +46,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get showAchievementActivity => _showAchievementActivity;
   bool get hasSeenAchievementQuotaWarning => _hasSeenAchievementQuotaWarning;
   bool get showQuotaOnDashboard => _showQuotaOnDashboard;
+  bool get showDashboardCoverBackground => _showDashboardCoverBackground;
 
   // Windows/macOS: read via system_theme. Android 12+: read via
   // dynamic_color/Material You (wired in main.dart, not here, since it
@@ -81,7 +83,15 @@ class SettingsProvider extends ChangeNotifier {
     _hasSeenAchievementQuotaWarning =
         prefs.getBool('seen_achievement_quota_warning') ?? false;
     _showQuotaOnDashboard = prefs.getBool('show_quota_on_dashboard') ?? false;
+    _showDashboardCoverBackground = prefs.getBool('show_dashboard_cover_bg') ?? true;
 
+    notifyListeners();
+  }
+
+  Future<void> setShowDashboardCoverBackground(bool value) async {
+    _showDashboardCoverBackground = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_dashboard_cover_bg', value);
     notifyListeners();
   }
 

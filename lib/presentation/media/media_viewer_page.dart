@@ -8,9 +8,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/game_clip.dart';
 
-// Full gallery viewer: swipe left/right between all items of the same type
-// (all clips, or all screenshots), like a normal phone gallery, instead of
-// only ever showing the one that was tapped.
+// Full gallery viewer: swipe left/right between all items of the same type,
+// like a normal phone gallery, instead of only ever showing the one that
+// was tapped. Controls (top bar + bottom playback bar) share ONE visibility
+// state owned here and passed down — a previous version had the bottom bar
+// live inside the per-item widget with no toggle at all, so it never
+// hid/faded in sync with the top bar. That mismatch is fixed below.
 class MediaViewerPage extends StatefulWidget {
   final List<GameClip> items;
   final int initialIndex;
@@ -22,8 +25,6 @@ class MediaViewerPage extends StatefulWidget {
     required this.isClip,
   });
 
-  // Kept for any old call sites passing a single item — wraps it as a
-  // one-item gallery so nothing else needs to change.
   factory MediaViewerPage.single({
     Key? key,
     required GameClip media,
@@ -39,6 +40,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
   late final PageController _pageController;
   late int _index;
   bool _controlsVisible = true;
+  bool _playing = true;
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
     _index = widget.initialIndex;
     _pageController = PageController(initialPage: _index);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _scheduleAutoHide();
   }
 
   @override
@@ -55,11 +58,27 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
     super.dispose();
   }
 
-  void _toggleControls() => setState(() => _controlsVisible = !_controlsVisible);
+  void _scheduleAutoHide() {
+    if (!widget.isClip) return;
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _playing) setState(() => _controlsVisible = false);
+    });
+  }
+
+  void _toggleControls() {
+    setState(() => _controlsVisible = !_controlsVisible);
+    if (_controlsVisible) _scheduleAutoHide();
+  }
+
+  void _setPlaying(bool playing) {
+    _playing = playing;
+    if (playing) _scheduleAutoHide();
+  }
 
   @override
   Widget build(BuildContext context) {
     final current = widget.items[_index];
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -74,53 +93,55 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
               media: widget.items[i],
               isClip: widget.isClip,
               active: i == _index,
+              controlsVisible: _controlsVisible,
               onTap: _toggleControls,
+              onPlayingChanged: _setPlaying,
             ),
           ),
-          AnimatedOpacity(
-            opacity: _controlsVisible ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: IgnorePointer(
-              ignoring: !_controlsVisible,
-              child: Container(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 4,
-                  left: 4,
-                  right: 4,
-                  bottom: 8,
+
+          // Top bar: back + title + page counter. Same fade/ignore logic
+          // as the bottom bar so both move together.
+          _ControlFade(
+            visible: _controlsVisible,
+            alignment: Alignment.topCenter,
+            child: Container(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 4,
+                left: 4,
+                right: 4,
+                bottom: 8,
+              ),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black87, Colors.transparent],
                 ),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black87, Colors.transparent],
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          current.titleName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 15),
+                        ),
+                        if (widget.items.length > 1)
+                          Text('${_index + 1} / ${widget.items.length}',
+                              style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                      ],
                     ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            current.titleName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontSize: 15),
-                          ),
-                          if (widget.items.length > 1)
-                            Text('${_index + 1} / ${widget.items.length}',
-                                style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -130,16 +151,41 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
   }
 }
 
+// Shared fade + hit-test-blocking wrapper so the top and bottom bars behave
+// identically instead of one being animated and the other static.
+class _ControlFade extends StatelessWidget {
+  final bool visible;
+  final Alignment alignment;
+  final Widget child;
+  const _ControlFade({required this.visible, required this.alignment, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: alignment,
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: IgnorePointer(ignoring: !visible, child: child),
+      ),
+    );
+  }
+}
+
 class _SingleMediaView extends StatefulWidget {
   final GameClip media;
   final bool isClip;
   final bool active;
+  final bool controlsVisible;
   final VoidCallback onTap;
+  final ValueChanged<bool> onPlayingChanged;
   const _SingleMediaView({
     required this.media,
     required this.isClip,
     required this.active,
+    required this.controlsVisible,
     required this.onTap,
+    required this.onPlayingChanged,
   });
 
   @override
@@ -166,11 +212,10 @@ class _SingleMediaViewState extends State<_SingleMediaView> {
   @override
   void didUpdateWidget(covariant _SingleMediaView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Pause when swiped away, resume when swiped back to — avoids every
-    // clip in the gallery playing audio/decoding at once.
     if (_controller != null && _controller!.value.isInitialized) {
       if (widget.active) {
         _controller!.play();
+        widget.onPlayingChanged(true);
       } else {
         _controller!.pause();
       }
@@ -182,10 +227,25 @@ class _SingleMediaViewState extends State<_SingleMediaView> {
       ..initialize().then((_) {
         if (!mounted) return;
         setState(() {});
-        if (widget.active) _controller!.play();
+        if (widget.active) {
+          _controller!.play();
+          widget.onPlayingChanged(true);
+        }
       }).catchError((e) {
         if (mounted) setState(() => _videoError = '$e');
       });
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      if (_controller!.value.isPlaying) {
+        _controller!.pause();
+        widget.onPlayingChanged(false);
+      } else {
+        _controller!.play();
+        widget.onPlayingChanged(true);
+      }
+    });
   }
 
   void _toggleMute() {
@@ -212,7 +272,8 @@ class _SingleMediaViewState extends State<_SingleMediaView> {
       final res = await http.get(Uri.parse(_sourceUrl));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final ext = widget.isClip ? 'mp4' : 'png';
-      final fileName = 'xscore_${widget.media.id.isNotEmpty ? widget.media.id : DateTime.now().millisecondsSinceEpoch}.$ext';
+      final fileName =
+          'xscore_${widget.media.id.isNotEmpty ? widget.media.id : DateTime.now().millisecondsSinceEpoch}.$ext';
       final dir = await _resolveDownloadsDir();
       final file = File('${dir.path}/$fileName');
       await file.writeAsBytes(res.bodyBytes);
@@ -243,66 +304,76 @@ class _SingleMediaViewState extends State<_SingleMediaView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Center(child: widget.isClip ? _buildVideo() : _buildImage()),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 24, 12, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Colors.black87, Colors.transparent],
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Only the media itself toggles the controls on tap — the bottom
+        // bar (below) is a sibling, not a child of this GestureDetector,
+        // so scrubbing the progress bar or tapping a button never also
+        // triggers a hide/show toggle underneath it.
+        GestureDetector(
+          onTap: widget.onTap,
+          child: Center(child: widget.isClip ? _buildVideo() : _buildImage()),
+        ),
+        _ControlFade(
+          visible: widget.controlsVisible,
+          alignment: Alignment.bottomCenter,
+          child: _bottomBar(scheme),
+        ),
+      ],
+    );
+  }
+
+  Widget _bottomBar(ColorScheme scheme) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 24, 12, 20),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Colors.black87, Colors.transparent],
+          ),
+        ),
+        child: Row(
+          children: [
+            if (widget.isClip && _controller?.value.isInitialized == true) ...[
+              IconButton(
+                icon: Icon(
+                  _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                ),
+                onPressed: _togglePlayPause,
+              ),
+              Expanded(
+                child: VideoProgressIndicator(
+                  _controller!,
+                  allowScrubbing: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  colors: VideoProgressColors(
+                    playedColor: scheme.primary,
+                    bufferedColor: Colors.white24,
+                    backgroundColor: Colors.white12,
+                  ),
                 ),
               ),
-              child: Row(
-                children: [
-                  if (widget.isClip && _controller?.value.isInitialized == true) ...[
-                    IconButton(
-                      icon: Icon(
-                        _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => setState(() {
-                        _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
-                      }),
-                    ),
-                    Expanded(
-                      child: VideoProgressIndicator(
-                        _controller!,
-                        allowScrubbing: true,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        colors: VideoProgressColors(
-                          playedColor: scheme.primary,
-                          bufferedColor: Colors.white24,
-                          backgroundColor: Colors.white12,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(_muted ? Icons.volume_off : Icons.volume_up, color: Colors.white),
-                      onPressed: _toggleMute,
-                    ),
-                  ] else
-                    const Spacer(),
-                  IconButton(
-                    icon: _downloading
-                        ? const SizedBox(
-                            width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.download_outlined, color: Colors.white),
-                    onPressed: _downloading ? null : _download,
-                  ),
-                ],
+              IconButton(
+                icon: Icon(_muted ? Icons.volume_off : Icons.volume_up, color: Colors.white),
+                onPressed: _toggleMute,
               ),
+            ] else
+              const Spacer(),
+            IconButton(
+              icon: _downloading
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.download_outlined, color: Colors.white),
+              onPressed: _downloading ? null : _download,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

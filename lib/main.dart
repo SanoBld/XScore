@@ -17,6 +17,21 @@ Future<void> main() async {
   runApp(XScoreApp(settings: settings));
 }
 
+// Vivid fallback used when the device's Material You palette is basically
+// grayscale (e.g. a black & white / monochrome wallpaper) — Android still
+// derives *a* color in that case, but it's so desaturated the whole app
+// looks flat gray. A wallpaper-derived color this washed out isn't a
+// meaningful "accent" choice, so we swap it for a vivid blue instead of
+// honoring it literally.
+const _monochromeFallback = Color(0xFF2962FF);
+
+bool _isNearGrayscale(Color c) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl.saturation < 0.12;
+}
+
+Color _sanitizeDynamicSeed(Color seed) => _isNearGrayscale(seed) ? _monochromeFallback : seed;
+
 class XScoreApp extends StatelessWidget {
   final SettingsProvider settings;
   const XScoreApp({super.key, required this.settings});
@@ -39,18 +54,33 @@ class XScoreApp extends StatelessWidget {
                   Platform.isAndroid &&
                   lightDynamic != null;
 
+              // If the device palette is near-grayscale, rebuild a scheme
+              // from the vivid fallback seed instead of using the flat
+              // dynamic scheme as-is.
+              final effectiveLightDynamic = (useAndroidDynamic && _isNearGrayscale(lightDynamic!.primary))
+                  ? ColorScheme.fromSeed(seedColor: _monochromeFallback)
+                  : lightDynamic;
+              final effectiveDarkDynamic = (useAndroidDynamic &&
+                      darkDynamic != null &&
+                      _isNearGrayscale(darkDynamic.primary))
+                  ? ColorScheme.fromSeed(
+                      seedColor: _monochromeFallback, brightness: Brightness.dark)
+                  : darkDynamic;
+
+              final accentColor = _sanitizeDynamicSeed(settings.accentColor);
+
               final lightScheme = useAndroidDynamic
-                  ? lightDynamic
-                  : AppTheme.light(settings.accentColor).colorScheme;
+                  ? effectiveLightDynamic!
+                  : AppTheme.light(accentColor).colorScheme;
               final darkScheme = useAndroidDynamic
-                  ? (darkDynamic ?? AppTheme.dark(settings.accentColor).colorScheme)
-                  : AppTheme.dark(settings.accentColor).colorScheme;
+                  ? (effectiveDarkDynamic ?? AppTheme.dark(accentColor).colorScheme)
+                  : AppTheme.dark(accentColor).colorScheme;
 
               return MaterialApp(
                 title: 'XScore',
                 debugShowCheckedModeBanner: false,
-                theme: AppTheme.light(settings.accentColor).copyWith(colorScheme: lightScheme),
-                darkTheme: AppTheme.dark(settings.accentColor).copyWith(colorScheme: darkScheme),
+                theme: AppTheme.light(accentColor).copyWith(colorScheme: lightScheme),
+                darkTheme: AppTheme.dark(accentColor).copyWith(colorScheme: darkScheme),
                 themeMode: settings.themeMode,
                 locale: settings.locale,
                 supportedLocales: AppLocalizations.supportedLocales,

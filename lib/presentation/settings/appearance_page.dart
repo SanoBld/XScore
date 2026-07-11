@@ -139,6 +139,22 @@ class AppearancePage extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          SettingsSection(
+            title: 'Accueil',
+            icon: Icons.dashboard_customize_rounded,
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Fond flouté (dernier jeu joué)'),
+                subtitle: const Text('Repli sur ta photo de profil si aucun jeu'),
+                value: settings.showDashboardCoverBackground,
+                onChanged: (v) =>
+                    context.read<SettingsProvider>().setShowDashboardCoverBackground(v),
+              ),
+            ],
+          ),
         ],
       ),
     );

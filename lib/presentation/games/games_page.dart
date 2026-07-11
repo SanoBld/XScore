@@ -236,40 +236,71 @@ class _GamesGrid extends StatelessWidget {
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => GameDetailPage(title: g)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: g.boxArtUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: g.boxArtUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorWidget: (_, __, ___) =>
-                              Container(color: scheme.surfaceContainerHigh),
-                        )
-                      : Container(
-                          color: scheme.surfaceContainerHigh,
-                          child: const Icon(Icons.videogame_asset),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                g.boxArtUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: g.boxArtUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) =>
+                            Container(color: scheme.surfaceContainerHigh),
+                      )
+                    : Container(
+                        color: scheme.surfaceContainerHigh,
+                        child: const Icon(Icons.videogame_asset),
+                      ),
+                // Darken the art so a white, left-aligned title stays
+                // readable regardless of the cover's own colors — poster
+                // grids read better with the label baked over the image
+                // than as separate text underneath it.
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black87],
+                      stops: [0.5, 1.0],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        g.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.15,
                         ),
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (g.progressPercentage / 100).clamp(0, 1),
+                          minHeight: 4,
+                          backgroundColor: Colors.white24,
+                          color: g.progressPercentage >= 100 ? Colors.amber : scheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(g.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: (g.progressPercentage / 100).clamp(0, 1),
-                  minHeight: 4,
-                  color: g.progressPercentage >= 100 ? Colors.amber : null,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

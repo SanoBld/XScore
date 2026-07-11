@@ -42,18 +42,10 @@ class _DashboardPageState extends State<DashboardPage> {
         title: Consumer<XboxDataProvider>(
           builder: (context, data, _) {
             final p = data.profile;
-            return Row(
-              children: [
-                _GradientAvatar(imageUrl: p?.gamerpicUrl, radius: 16),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    p?.gamertag.isNotEmpty == true ? p!.gamertag : 'XScore',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            return Text(
+              p?.gamertag.isNotEmpty == true ? p!.gamertag : 'XScore',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             );
           },
         ),
@@ -99,7 +91,9 @@ class _DashboardBody extends StatelessWidget {
 
     return Stack(
       children: [
-        if (coverUrl != null && coverUrl.isNotEmpty)
+        if (context.watch<SettingsProvider>().showDashboardCoverBackground &&
+            coverUrl != null &&
+            coverUrl.isNotEmpty)
           Positioned(
             top: 0,
             left: 0,
@@ -216,7 +210,7 @@ class _DashboardBody extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 170,
+            height: 150,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: data.recentTitles.length,
@@ -229,37 +223,55 @@ class _DashboardBody extends StatelessWidget {
                         builder: (_) => GameDetailPage(title: title)),
                   ),
                   child: SizedBox(
-                    width: 110,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: title.boxArtUrl != null
+                    width: 112,
+                    height: 150,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          title.boxArtUrl != null
                               ? CachedNetworkImage(
-                                  imageUrl: title.boxArtUrl!,
-                                  height: 110,
-                                  width: 110,
-                                  fit: BoxFit.cover,
-                                )
+                                  imageUrl: title.boxArtUrl!, fit: BoxFit.cover)
                               : Container(
-                                  height: 110,
-                                  width: 110,
                                   color: scheme.surfaceContainerHigh,
                                   child: const Icon(Icons.videogame_asset),
                                 ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(title.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall),
-                        Text('${title.progressPercentage.toStringAsFixed(0)}%',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(color: scheme.primary)),
-                      ],
+                          Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Colors.transparent, Colors.black87],
+                                stops: [0.45, 1.0],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 8,
+                            right: 8,
+                            bottom: 8,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(title.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.15,
+                                    )),
+                                Text('${title.progressPercentage.toStringAsFixed(0)}%',
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 10.5)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );

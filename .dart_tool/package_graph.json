@@ -78,6 +78,15 @@
       ]
     },
     {
+      "name": "dynamic_color",
+      "version": "1.8.1",
+      "dependencies": [
+        "flutter",
+        "flutter_test",
+        "material_color_utilities"
+      ]
+    },
+    {
       "name": "system_theme",
       "version": "3.2.0",
       "dependencies": [
@@ -384,6 +393,13 @@
       ]
     },
     {
+      "name": "material_color_utilities",
+      "version": "0.13.0",
+      "dependencies": [
+        "collection"
+      ]
+    },
+    {
       "name": "system_theme_web",
       "version": "0.0.5",
       "dependencies": [
@@ -658,13 +674,6 @@
       "name": "sky_engine",
       "version": "0.0.0",
       "dependencies": []
-    },
-    {
-      "name": "material_color_utilities",
-      "version": "0.13.0",
-      "dependencies": [
-        "collection"
-      ]
     },
     {
       "name": "characters",
@@ -953,15 +962,6 @@
       "name": "synchronized",
       "version": "3.4.0+1",
       "dependencies": []
-    },
-    {
-      "name": "dynamic_color",
-      "version": "1.8.1",
-      "dependencies": [
-        "flutter",
-        "flutter_test",
-        "material_color_utilities"
-      ]
     }
   ],
   "configVersion": 1
