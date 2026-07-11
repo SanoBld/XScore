@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../providers/xbox_data_provider.dart';
+import '../providers/settings_provider.dart';
 import '../../data/models/title_summary.dart';
 import '../../data/models/achievement.dart';
 import '../../data/models/friend.dart';
+import '../../data/models/game_info.dart';
+import '../../data/services/igdb_service.dart';
 
 class GameDetailPage extends StatefulWidget {
   final TitleSummary title;
@@ -23,10 +26,32 @@ class _GameDetailPageState extends State<GameDetailPage> {
   bool _comparing = false;
   String? _compareError;
 
+  GameInfo? _igdbInfo;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadIgdbInfo();
+  }
+
+  // Silent by design: IGDB is an optional enrichment (needs its own free
+  // Twitch Developer keys, separate from OpenXBL). If it's not configured
+  // or the lookup fails, we just don't show the extra section — no error
+  // banner, since the page is fully usable without it.
+  Future<void> _loadIgdbInfo() async {
+    final settings = context.read<SettingsProvider>();
+    if (!settings.hasIgdbCredentials) return;
+    try {
+      final service = IgdbService(
+        clientId: settings.igdbClientId!,
+        clientSecret: settings.igdbClientSecret!,
+      );
+      final info = await service.findByName(widget.title.name);
+      if (mounted && info != null) setState(() => _igdbInfo = info);
+    } catch (_) {
+      // Enrichment is best-effort — fail quietly
+    }
   }
 
   Future<void> _load() async {
@@ -148,6 +173,10 @@ class _GameDetailPageState extends State<GameDetailPage> {
                       ],
                     ),
                   ],
+                  if (_igdbInfo != null) ...[
+                    const SizedBox(height: 14),
+                    _IgdbInfoCard(info: _igdbInfo!),
+                  ],
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: _comparing ? null : _pickFriendToCompare,
@@ -253,6 +282,76 @@ class _GameDetailPageState extends State<GameDetailPage> {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _IgdbInfoCard extends StatelessWidget {
+  final GameInfo info;
+  const _IgdbInfoCard({required this.info});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: scheme.primary),
+                const SizedBox(width: 6),
+                Text('Infos', style: Theme.of(context).textTheme.labelLarge),
+                const Spacer(),
+                Text('via IGDB',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (info.genres.isNotEmpty)
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: info.genres
+                    .map((g) => Chip(
+                          label: Text(g, style: const TextStyle(fontSize: 11)),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ))
+                    .toList(),
+              ),
+            if (info.rating != null || info.firstReleaseDate != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  if (info.rating != null) ...[
+                    Icon(Icons.star, size: 16, color: Colors.amber),
+                    const SizedBox(width: 4),
+                    Text('${(info.rating! / 10).toStringAsFixed(1)}/10'),
+                    const SizedBox(width: 16),
+                  ],
+                  if (info.firstReleaseDate != null)
+                    Text('Sorti en ${info.firstReleaseDate!.year}'),
+                ],
+              ),
+            ],
+            if (info.summary != null && info.summary!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                info.summary!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

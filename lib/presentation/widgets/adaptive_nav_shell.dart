@@ -25,31 +25,29 @@ class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
     MediaPage(),
   ];
 
-  // Short, fixed French labels — the localized strings (t.navDashboard,
-  // etc.) were too long for the bottom bar on small screens. If you also
-  // ship English, update the matching keys in the ARB files to shorter
-  // values instead of reverting this.
+  // Short labels, now properly localized (navHome/navSearch added to the
+  // ARB files instead of hardcoding French — see app_en.arb/app_fr.arb).
   List<NavigationDestination> _destinations(AppLocalizations t) => [
-        const NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Accueil'),
-        const NavigationDestination(
-            icon: Icon(Icons.videogame_asset_outlined),
-            selectedIcon: Icon(Icons.videogame_asset),
-            label: 'Jeux'),
-        const NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Recherche'),
-        const NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Amis'),
-        const NavigationDestination(
-            icon: Icon(Icons.movie_outlined),
-            selectedIcon: Icon(Icons.movie),
-            label: 'Médias'),
+        NavigationDestination(
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: t.navHome),
+        NavigationDestination(
+            icon: const Icon(Icons.videogame_asset_outlined),
+            selectedIcon: const Icon(Icons.videogame_asset),
+            label: t.navGames),
+        NavigationDestination(
+            icon: const Icon(Icons.search_outlined),
+            selectedIcon: const Icon(Icons.search),
+            label: t.navSearch),
+        NavigationDestination(
+            icon: const Icon(Icons.people_outline),
+            selectedIcon: const Icon(Icons.people),
+            label: t.navSocial),
+        NavigationDestination(
+            icon: const Icon(Icons.movie_outlined),
+            selectedIcon: const Icon(Icons.movie),
+            label: t.navMedia),
       ];
 
   @override

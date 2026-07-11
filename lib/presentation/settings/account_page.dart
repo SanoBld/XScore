@@ -15,16 +15,23 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   late final TextEditingController _apiKeyCtrl;
+  late final TextEditingController _igdbIdCtrl;
+  late final TextEditingController _igdbSecretCtrl;
 
   @override
   void initState() {
     super.initState();
-    _apiKeyCtrl = TextEditingController(text: context.read<SettingsProvider>().apiKey ?? '');
+    final settings = context.read<SettingsProvider>();
+    _apiKeyCtrl = TextEditingController(text: settings.apiKey ?? '');
+    _igdbIdCtrl = TextEditingController(text: settings.igdbClientId ?? '');
+    _igdbSecretCtrl = TextEditingController(text: settings.igdbClientSecret ?? '');
   }
 
   @override
   void dispose() {
     _apiKeyCtrl.dispose();
+    _igdbIdCtrl.dispose();
+    _igdbSecretCtrl.dispose();
     super.dispose();
   }
 
@@ -72,6 +79,50 @@ class _AccountPageState extends State<AccountPage> {
                     .textTheme
                     .bodySmall
                     ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          SettingsSection(
+            title: 'Enrichissement IGDB (optionnel)',
+            icon: Icons.auto_awesome_rounded,
+            children: [
+              Text(
+                'Ajoute genre, note, synopsis et date de sortie sur la fiche '
+                'des jeux. Nécessite un compte Twitch Developer gratuit, '
+                'séparé de ta clé OpenXBL.',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _igdbIdCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Client ID',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _igdbSecretCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Client Secret',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => context
+                      .read<SettingsProvider>()
+                      .setIgdbCredentials(_igdbIdCtrl.text.trim(), _igdbSecretCtrl.text.trim()),
+                  child: const Text('Enregistrer'),
+                ),
               ),
             ],
           ),

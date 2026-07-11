@@ -5,6 +5,7 @@ import '../providers/xbox_data_provider.dart';
 import '../../data/models/friend.dart';
 import '../../data/models/player_profile.dart';
 import '../../data/models/title_summary.dart';
+import '../games/game_detail_page.dart';
 
 class FriendProfilePage extends StatefulWidget {
   final Friend friend;
@@ -46,7 +47,12 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
   Widget build(BuildContext context) {
     final f = widget.friend;
     final scheme = Theme.of(context).colorScheme;
-    final topGame = (_titles != null && _titles!.isNotEmpty) ? _titles!.first : null;
+    final titles = _titles ?? [];
+    final recentTitles = titles.take(6).toList();
+    final completed = titles.where((t) => t.progressPercentage >= 100).length;
+    final avgCompletion = titles.isEmpty
+        ? 0.0
+        : titles.map((t) => t.progressPercentage).reduce((a, b) => a + b) / titles.length;
 
     return Scaffold(
       appBar: AppBar(title: Text(f.gamertag)),
@@ -80,47 +86,63 @@ class _FriendProfilePageState extends State<FriendProfilePage> {
           ),
           const SizedBox(height: 20),
 
-          Row(
+          // 4 stats instead of just 2 — gamerscore/jeux was quite bare
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.2,
             children: [
-              Expanded(
-                child: _StatTile(
-                  icon: Icons.emoji_events_outlined,
-                  label: 'Gamerscore',
-                  value: '${f.gamerscore}',
-                ),
+              _StatTile(
+                icon: Icons.emoji_events_outlined,
+                label: 'Gamerscore',
+                value: '${f.gamerscore}',
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatTile(
-                  icon: Icons.videogame_asset_outlined,
-                  label: 'Jeux',
-                  value: _titles != null ? '${_titles!.length}' : '—',
-                ),
+              _StatTile(
+                icon: Icons.videogame_asset_outlined,
+                label: 'Jeux',
+                value: _titles != null ? '${_titles!.length}' : '—',
+              ),
+              _StatTile(
+                icon: Icons.workspace_premium_outlined,
+                label: 'Terminés (100%)',
+                value: _titles != null ? '$completed' : '—',
+              ),
+              _StatTile(
+                icon: Icons.donut_large_outlined,
+                label: 'Complétion moy.',
+                value: _titles != null ? '${avgCompletion.toStringAsFixed(0)}%' : '—',
               ),
             ],
           ),
 
-          if (topGame != null) ...[
+          if (recentTitles.isNotEmpty) ...[
             const SizedBox(height: 20),
-            Text('Jeu le plus récent', style: Theme.of(context).textTheme.titleMedium),
+            Text('Jeux récents', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: topGame.boxArtUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: topGame.boxArtUrl!, width: 44, height: 44, fit: BoxFit.cover)
-                      : Container(
-                          width: 44,
-                          height: 44,
-                          color: scheme.surfaceContainerHigh,
-                          child: const Icon(Icons.videogame_asset)),
-                ),
-                title: Text(topGame.name),
-                subtitle: Text('${topGame.progressPercentage.toStringAsFixed(0)}% terminé'),
-              ),
-            ),
+            ...recentTitles.map((g) => Card(
+                  child: ListTile(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => GameDetailPage(title: g)),
+                    ),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: g.boxArtUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: g.boxArtUrl!, width: 44, height: 44, fit: BoxFit.cover)
+                          : Container(
+                              width: 44,
+                              height: 44,
+                              color: scheme.surfaceContainerHigh,
+                              child: const Icon(Icons.videogame_asset)),
+                    ),
+                    title: Text(g.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text('${g.progressPercentage.toStringAsFixed(0)}% · '
+                        '${g.currentGamerscore}/${g.totalGamerscore} G'),
+                  ),
+                )),
           ],
 
           if (_error != null)
@@ -157,13 +179,23 @@ class _StatTile extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
             Icon(icon, color: scheme.primary, size: 20),
-            const SizedBox(height: 8),
-            Text(value, style: Theme.of(context).textTheme.titleMedium),
-            Text(label, style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(value, style: Theme.of(context).textTheme.titleMedium),
+                  Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall),
+                ],
+              ),
+            ),
           ],
         ),
       ),

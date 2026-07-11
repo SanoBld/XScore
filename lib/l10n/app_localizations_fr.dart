@@ -12,10 +12,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navDashboard => 'Tableau de bord';
 
   @override
-  String get navGames => 'Mes jeux';
+  String get navHome => 'Accueil';
 
   @override
-  String get navSocial => 'Social';
+  String get navGames => 'Jeux';
+
+  @override
+  String get navSearch => 'Recherche';
+
+  @override
+  String get navSocial => 'Amis';
 
   @override
   String get navMedia => 'Médias';
@@ -30,13 +36,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gamesTitle => 'Mes jeux';
 
   @override
-  String get socialTitle => 'Social';
+  String get socialTitle => 'Amis';
 
   @override
   String get mediaTitle => 'Médias';
 
   @override
+  String get searchTitle => 'Recherche';
+
+  @override
+  String get searchHint => 'Rechercher un jeu ou un profil…';
+
+  @override
   String get settingsTitle => 'Paramètres';
+
+  @override
+  String get settingsAppearance => 'Apparence';
+
+  @override
+  String get settingsAccount => 'Compte';
+
+  @override
+  String get settingsActivity => 'Activité';
+
+  @override
+  String get settingsNotifications => 'Notifications';
 
   @override
   String get settingsApiKey => 'Clé API';

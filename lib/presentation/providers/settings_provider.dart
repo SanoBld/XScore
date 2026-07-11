@@ -21,6 +21,8 @@ class SettingsProvider extends ChangeNotifier {
   final _secureStorage = const FlutterSecureStorage();
 
   String? _apiKey;
+  String? _igdbClientId;
+  String? _igdbClientSecret;
   Locale _locale = const Locale('en');
   ThemeMode _themeMode = ThemeMode.system;
   Color? _accentColor; // null = use system accent color
@@ -31,6 +33,10 @@ class SettingsProvider extends ChangeNotifier {
   bool _showQuotaOnDashboard = false;
 
   String? get apiKey => _apiKey;
+  String? get igdbClientId => _igdbClientId;
+  String? get igdbClientSecret => _igdbClientSecret;
+  bool get hasIgdbCredentials =>
+      (_igdbClientId ?? '').isNotEmpty && (_igdbClientSecret ?? '').isNotEmpty;
   Locale get locale => _locale;
   ThemeMode get themeMode => _themeMode;
   bool get hasApiKey => (_apiKey ?? '').isNotEmpty;
@@ -56,6 +62,8 @@ class SettingsProvider extends ChangeNotifier {
   // Load persisted settings at startup
   Future<void> init() async {
     _apiKey = await _secureStorage.read(key: StorageKeys.apiKey);
+    _igdbClientId = await _secureStorage.read(key: 'igdb_client_id');
+    _igdbClientSecret = await _secureStorage.read(key: 'igdb_client_secret');
     final prefs = await SharedPreferences.getInstance();
     final lang = prefs.getString(StorageKeys.languageCode);
     if (lang != null) _locale = Locale(lang);
@@ -119,6 +127,14 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setApiKey(String key) async {
     _apiKey = key;
     await _secureStorage.write(key: StorageKeys.apiKey, value: key);
+    notifyListeners();
+  }
+
+  Future<void> setIgdbCredentials(String clientId, String clientSecret) async {
+    _igdbClientId = clientId;
+    _igdbClientSecret = clientSecret;
+    await _secureStorage.write(key: 'igdb_client_id', value: clientId);
+    await _secureStorage.write(key: 'igdb_client_secret', value: clientSecret);
     notifyListeners();
   }
 

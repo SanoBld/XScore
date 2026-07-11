@@ -28,12 +28,12 @@ class _SettingsCardData {
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  List<_SettingsCardData> _cards(BuildContext context) => [
+  List<_SettingsCardData> _cards(BuildContext context, AppLocalizations t) => [
         _SettingsCardData(
           icon: Icons.palette_rounded,
           iconBg: (s) => s.primaryContainer,
           iconFg: (s) => s.onPrimaryContainer,
-          title: 'Apparence',
+          title: t.settingsAppearance,
           subtitle: 'Langue, couleur d\'accent, disposition',
           pageBuilder: () => const AppearancePage(),
         ),
@@ -41,7 +41,7 @@ class SettingsPage extends StatelessWidget {
           icon: Icons.vpn_key_rounded,
           iconBg: (s) => s.secondaryContainer,
           iconFg: (s) => s.onSecondaryContainer,
-          title: 'Compte',
+          title: t.settingsAccount,
           subtitle: 'Clé API, quota OpenXBL, déconnexion',
           pageBuilder: () => const AccountPage(),
         ),
@@ -49,7 +49,7 @@ class SettingsPage extends StatelessWidget {
           icon: Icons.emoji_events_rounded,
           iconBg: (s) => s.tertiaryContainer,
           iconFg: (s) => s.onTertiaryContainer,
-          title: 'Activité',
+          title: t.settingsActivity,
           subtitle: 'Succès récents sur le tableau de bord',
           pageBuilder: () => const ActivityPage(),
         ),
@@ -57,7 +57,7 @@ class SettingsPage extends StatelessWidget {
           icon: Icons.notifications_rounded,
           iconBg: (s) => Color.lerp(s.primaryContainer, s.tertiaryContainer, 0.5)!,
           iconFg: (s) => s.onPrimaryContainer,
-          title: 'Notifications',
+          title: t.settingsNotifications,
           subtitle: 'Succès, amis, clips',
           pageBuilder: () => const NotificationsPage(),
         ),
@@ -75,7 +75,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    final cards = _cards(context);
+    final cards = _cards(context, t);
     final width = MediaQuery.of(context).size.width;
     final crossAxisCount = width >= 900 ? 4 : (width >= 600 ? 3 : 2);
 

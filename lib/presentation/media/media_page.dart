@@ -152,6 +152,7 @@ class _MediaGridState extends State<_MediaGrid> {
                       ChoiceChip(
                         label: const Text('Tous les jeux'),
                         selected: _gameFilter == null,
+                        showCheckmark: false,
                         onSelected: (_) => setState(() => _gameFilter = null),
                       ),
                       const SizedBox(width: 8),
@@ -160,6 +161,7 @@ class _MediaGridState extends State<_MediaGrid> {
                             child: ChoiceChip(
                               label: Text(g, overflow: TextOverflow.ellipsis),
                               selected: _gameFilter == g,
+                              showCheckmark: false,
                               onSelected: (_) => setState(() => _gameFilter = g),
                             ),
                           )),
@@ -231,8 +233,10 @@ class _MediaGridState extends State<_MediaGrid> {
                           ? () => _toggleSelect(m.id)
                           : () => Navigator.of(context).push(
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        MediaViewerPage(media: m, isClip: widget.isClip)),
+                                    builder: (_) => MediaViewerPage(
+                                        items: filtered,
+                                        initialIndex: i,
+                                        isClip: widget.isClip)),
                               ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),

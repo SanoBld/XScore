@@ -32,4 +32,10 @@ class ApiConstants {
   // GitHub self-update
   static const latestReleaseUrl =
       'https://api.github.com/repos/SanoBld/XScore/releases/latest';
+
+  // IGDB (owned by Twitch) — optional enrichment: genres, summary, rating,
+  // release date. Needs a free Twitch Developer app (Client ID + Secret),
+  // separate from the OpenXBL key.
+  static const twitchTokenUrl = 'https://id.twitch.tv/oauth2/token';
+  static const igdbBase = 'https://api.igdb.com/v4';
 }

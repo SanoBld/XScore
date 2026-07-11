@@ -261,6 +261,7 @@ class _FilterChip extends StatelessWidget {
         label: Text(label),
         avatar: Icon(icon, size: 16),
         selected: selected,
+        showCheckmark: false,
         onSelected: (_) => onTap(),
       ),
     );

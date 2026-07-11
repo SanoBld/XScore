@@ -312,7 +312,7 @@ class _RecentActivity extends StatelessWidget {
             subtitle: 'Nouveau clip',
             imageUrl: c.thumbnailUrl,
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => MediaViewerPage(media: c, isClip: true))),
+                builder: (_) => MediaViewerPage.single(media: c, isClip: true))),
           )),
       ...data.screenshots.map((c) => _ActivityEntry(
             date: c.date,
@@ -321,11 +321,11 @@ class _RecentActivity extends StatelessWidget {
             subtitle: 'Nouvelle capture',
             imageUrl: c.thumbnailUrl,
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => MediaViewerPage(media: c, isClip: false))),
+                builder: (_) => MediaViewerPage.single(media: c, isClip: false))),
           )),
     ]..sort((a, b) => b.date.compareTo(a.date));
 
-    final top = items.take(8).toList();
+    final top = items.take(10).toList();
 
     if (data.loadingAchievementsActivity && top.isEmpty) {
       return const Padding(
@@ -391,7 +391,9 @@ class _ActivityEntry {
 }
 
 // Extra "at a glance" row — completed games, average completion, total clips
-// — all computed from data already loaded, no extra requests.
+// — all computed from data already loaded, no extra requests. Uses the
+// same _StatCard as the row above (was a visually different _MiniStat
+// before — unified so every stat on the dashboard looks consistent).
 class _RecordsRow extends StatelessWidget {
   final XboxDataProvider data;
   const _RecordsRow({required this.data});
@@ -408,51 +410,22 @@ class _RecordsRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _MiniStat(icon: Icons.workspace_premium_outlined, label: 'Terminés', value: '$completed'),
+          child: _StatCard(
+              icon: Icons.workspace_premium_outlined, label: 'Terminés', value: '$completed'),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _MiniStat(
+          child: _StatCard(
               icon: Icons.donut_large_outlined,
               label: 'Complétion moy.',
               value: '${avg.toStringAsFixed(0)}%'),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _MiniStat(icon: Icons.perm_media_outlined, label: 'Médias', value: '$mediaCount'),
+          child: _StatCard(
+              icon: Icons.perm_media_outlined, label: 'Médias', value: '$mediaCount'),
         ),
       ],
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _MiniStat({required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: scheme.primary),
-          const SizedBox(height: 4),
-          Text(value, style: Theme.of(context).textTheme.titleSmall),
-          Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall),
-        ],
-      ),
     );
   }
 }
