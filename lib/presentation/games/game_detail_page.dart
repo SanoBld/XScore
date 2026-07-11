@@ -8,6 +8,7 @@ import '../../data/models/achievement.dart';
 import '../../data/models/friend.dart';
 import '../../data/models/game_info.dart';
 import '../../data/services/igdb_service.dart';
+import '../../data/services/api_client.dart' show ApiException;
 
 class GameDetailPage extends StatefulWidget {
   final TitleSummary title;
@@ -64,6 +65,17 @@ class _GameDetailPageState extends State<GameDetailPage> {
       // (still to do) first, most people open this screen to see what's left
       list.sort((a, b) => a.unlocked == b.unlocked ? 0 : (a.unlocked ? 1 : -1));
       if (mounted) setState(() => _achievements = list);
+    } on ApiException catch (e) {
+      // OpenXBL answers unsupported/legacy titles with a 500 "NOT_FOUND"
+      // envelope rather than an empty 200 list — that's not a real error
+      // from the user's point of view, just "no data for this title", so
+      // it goes through the same friendly empty-state message instead of
+      // a raw stack trace.
+      if (e.statusCode == 500 && e.message.contains('NOT_FOUND')) {
+        if (mounted) setState(() => _achievements = []);
+      } else {
+        if (mounted) setState(() => _error = '$e');
+      }
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     }

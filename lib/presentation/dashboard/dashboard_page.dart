@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -89,7 +90,53 @@ class _DashboardBody extends StatelessWidget {
 
     final profile = data.profile;
 
-    return ListView(
+    // Cover image: last-played game's box art, falling back to the
+    // profile's gamerpic when there's no game data yet, and to nothing
+    // (plain background) when neither exists.
+    final coverUrl = data.recentTitles.isNotEmpty
+        ? data.recentTitles.first.boxArtUrl
+        : profile?.gamerpicUrl;
+
+    return Stack(
+      children: [
+        if (coverUrl != null && coverUrl.isNotEmpty)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 260,
+            child: ClipRect(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(imageUrl: coverUrl, fit: BoxFit.cover),
+                  // Heavy blur + scrim so the header art reads as ambient
+                  // color/mood rather than a legible image competing with
+                  // the profile card text on top of it.
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Container(color: Colors.black.withValues(alpha: 0.35)),
+                  ),
+                  // Fade to the scaffold background at the bottom edge so
+                  // it blends into the rest of the (unblurred) page below.
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Theme.of(context).scaffoldBackgroundColor,
+                        ],
+                        stops: const [0.4, 1.0],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ListView(
       padding: const EdgeInsets.all(16),
       children: [
         if (profile != null)
@@ -159,7 +206,7 @@ class _DashboardBody extends StatelessWidget {
         _RecordsRow(data: data),
         const SizedBox(height: 20),
 
-        Text(t.dashboardRecentActivity,
+        Text('Récemment joué',
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (data.recentTitles.isEmpty)
@@ -221,7 +268,7 @@ class _DashboardBody extends StatelessWidget {
           ),
 
         const SizedBox(height: 20),
-        Text('Activité récente', style: Theme.of(context).textTheme.titleMedium),
+        Text(t.dashboardRecentActivity, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         _RecentActivity(data: data),
 
@@ -264,6 +311,8 @@ class _DashboardBody extends StatelessWidget {
             ),
           ),
         ],
+      ],
+        ),
       ],
     );
   }
@@ -417,7 +466,7 @@ class _RecordsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
               icon: Icons.donut_large_outlined,
-              label: 'Complétion moy.',
+              label: 'Complétion',
               value: '${avg.toStringAsFixed(0)}%'),
         ),
         const SizedBox(width: 10),
@@ -502,8 +551,8 @@ class _StatCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(value, style: Theme.of(context).textTheme.titleMedium),
               Text(label,
-                  style: Theme.of(context).textTheme.labelSmall,
-                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(height: 1.15),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis),
             ],
           ),

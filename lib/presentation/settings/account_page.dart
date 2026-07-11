@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/settings_provider.dart';
 import '../providers/xbox_data_provider.dart';
@@ -62,6 +63,14 @@ class _AccountPageState extends State<AccountPage> {
                   ),
                 ),
               ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => launchUrl(Uri.parse('https://xbl.io')),
+                  icon: const Icon(Icons.open_in_new, size: 15),
+                  label: const Text('Obtenir une clé gratuite sur xbl.io'),
+                ),
+              ),
               const SizedBox(height: 12),
               const _QuotaBar(),
               const SizedBox(height: 8),
@@ -96,6 +105,15 @@ class _AccountPageState extends State<AccountPage> {
                     .textTheme
                     .bodySmall
                     ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () =>
+                      launchUrl(Uri.parse('https://dev.twitch.tv/console/apps')),
+                  icon: const Icon(Icons.open_in_new, size: 15),
+                  label: const Text('Créer une app sur dev.twitch.tv'),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(

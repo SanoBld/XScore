@@ -76,8 +76,10 @@ class AppearancePage extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Suivre la couleur d\'accent du système'),
                   subtitle: Text(
-                    'Détectée sur ${Platform.isWindows ? "Windows" : "macOS"} : '
-                    'change automatiquement si tu la modifies dans les réglages OS.',
+                    Platform.isAndroid
+                        ? 'Material You : reprend le fond d\'écran/l\'accent Android 12+.'
+                        : 'Détectée sur ${Platform.isWindows ? "Windows" : "macOS"} : '
+                            'change automatiquement si tu la modifies dans les réglages OS.',
                   ),
                   value: settings.useSystemAccent,
                   onChanged: (v) =>

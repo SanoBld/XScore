@@ -113,7 +113,7 @@ abstract class AppLocalizations {
   /// No description provided for @navGames.
   ///
   /// In en, this message translates to:
-  /// **'My Games'**
+  /// **'Games'**
   String get navGames;
 
   /// No description provided for @navSearch.
@@ -125,7 +125,7 @@ abstract class AppLocalizations {
   /// No description provided for @navSocial.
   ///
   /// In en, this message translates to:
-  /// **'Social'**
+  /// **'Friends'**
   String get navSocial;
 
   /// No description provided for @navMedia.
@@ -155,7 +155,7 @@ abstract class AppLocalizations {
   /// No description provided for @socialTitle.
   ///
   /// In en, this message translates to:
-  /// **'Social'**
+  /// **'Friends'**
   String get socialTitle;
 
   /// No description provided for @mediaTitle.

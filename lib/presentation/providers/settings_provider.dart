@@ -46,14 +46,12 @@ class SettingsProvider extends ChangeNotifier {
   bool get hasSeenAchievementQuotaWarning => _hasSeenAchievementQuotaWarning;
   bool get showQuotaOnDashboard => _showQuotaOnDashboard;
 
-  // system_theme only reads a real OS accent on Windows/macOS. On
-  // Android/iOS/Linux it has no accent API and silently falls back to a
-  // generic blue — which is the "bleu chelou" bug: the toggle looked like
-  // it was working but was just always showing that fallback. So the
-  // system-accent option is only honored on the platforms that actually
-  // support it; everywhere else we always use the manually chosen preset.
+  // Windows/macOS: read via system_theme. Android 12+: read via
+  // dynamic_color/Material You (wired in main.dart, not here, since it
+  // needs a BuildContext + DynamicColorBuilder). iOS/Linux/older Android:
+  // no OS-level accent API exists, so we always fall back to a preset.
   bool get supportsSystemAccent =>
-      !kIsWeb && (Platform.isWindows || Platform.isMacOS);
+      !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isAndroid);
 
   Color get accentColor => (useSystemAccent && supportsSystemAccent)
       ? SystemTheme.accentColor.accent
