@@ -3,6 +3,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:system_theme/system_theme.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/providers/settings_provider.dart';
@@ -17,39 +18,18 @@ Future<void> main() async {
   runApp(XScoreApp(settings: settings));
 }
 
-// Vivid fallback used when the device's Material You palette is basically
-// grayscale (e.g. a black & white / monochrome wallpaper) — Android still
-// derives *a* color in that case, but it's so desaturated the whole app
-// looks flat gray. A wallpaper-derived color this washed out isn't a
-// meaningful "accent" choice, so we swap it for a vivid blue instead of
-// honoring it literally.
-const _monochromeFallback = Color(0xFF2962FF);
-
-// M3's tonal mapping already desaturates "primary" quite a bit even for
-// colorful wallpapers — checking only primary's saturation against a loose
-// threshold was flagging real (but pastel) colors as monochrome, which is
-// why the app looked stuck on the fallback blue. Comparing hue spread
-// across primary/secondary/tertiary is a much more reliable signal: a
-// genuinely black & white wallpaper produces three colors clustered on
-// nearly the same hue, whereas any colorful wallpaper spreads them apart
-// even when each one is individually muted.
-bool _isEffectivelyMonochrome(ColorScheme s) {
-  final hues = [s.primary, s.secondary, s.tertiary].map((c) => HSLColor.fromColor(c).hue);
-  final maxSat = [s.primary, s.secondary, s.tertiary]
-      .map((c) => HSLColor.fromColor(c).saturation)
-      .reduce((a, b) => a > b ? a : b);
-  if (maxSat > 0.10) return false; // something in the palette has real color
-  double hueSpread(double a, double b) {
-    final d = (a - b).abs();
-    return d > 180 ? 360 - d : d;
-  }
-  final list = hues.toList();
-  final spread = [
-    hueSpread(list[0], list[1]),
-    hueSpread(list[1], list[2]),
-    hueSpread(list[0], list[2]),
-  ].reduce((a, b) => a > b ? a : b);
-  return spread < 20; // hues barely differ AND everything is desaturated
+// Ported from a working reference project instead of the ad-hoc
+// "grayscale detection" this file used before, which was flagging real
+// (but pastel) Material You palettes as monochrome and forcing blue
+// almost permanently — that was the actual bug. This just guards the two
+// genuinely degenerate seeds (near-black / near-white give ColorScheme.
+// fromSeed almost no room to derive tones from) and otherwise trusts the
+// color as-is.
+Color _seedColorForScheme(Color c) {
+  final luminance = c.computeLuminance();
+  if (luminance < 0.008) return const Color(0xFF455A64);
+  if (luminance > 0.97) return const Color(0xFF90A4AE);
+  return c;
 }
 
 class XScoreApp extends StatelessWidget {
@@ -60,47 +40,46 @@ class XScoreApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: settings,
-      // DynamicColorBuilder reads the real Material You / device accent
-      // color on Android 12+ (and does nothing — returns null — anywhere
-      // else, in which case we fall back to system_theme on Windows/macOS,
-      // or the manual preset). This is the piece that was missing before:
-      // system_theme alone never worked on Android.
+      // DynamicColorBuilder only ever returns non-null on Android 12+ (it's
+      // a no-op elsewhere), so there's no need for a manual Platform check
+      // to decide whether it applies.
       child: DynamicColorBuilder(
         builder: (lightDynamic, darkDynamic) {
           return Consumer<SettingsProvider>(
             builder: (context, settings, _) {
-              final useAndroidDynamic = settings.useSystemAccent &&
+              final useDynamic = settings.useSystemAccent && lightDynamic != null;
+              final useDesktopSystemAccent = settings.useSystemAccent &&
                   !kIsWeb &&
-                  Platform.isAndroid &&
-                  lightDynamic != null;
+                  (Platform.isWindows || Platform.isMacOS);
 
-              // If the device palette is near-grayscale, rebuild a scheme
-              // from the vivid fallback seed instead of using the flat
-              // dynamic scheme as-is.
-              final effectiveLightDynamic = (useAndroidDynamic && _isEffectivelyMonochrome(lightDynamic!))
-                  ? ColorScheme.fromSeed(seedColor: _monochromeFallback)
-                  : lightDynamic;
-              final effectiveDarkDynamic = (useAndroidDynamic &&
-                      darkDynamic != null &&
-                      _isEffectivelyMonochrome(darkDynamic))
-                  ? ColorScheme.fromSeed(
-                      seedColor: _monochromeFallback, brightness: Brightness.dark)
-                  : darkDynamic;
+              ColorScheme lightScheme;
+              ColorScheme darkScheme;
 
-              final accentColor = settings.accentColor;
-
-              final lightScheme = useAndroidDynamic
-                  ? effectiveLightDynamic!
-                  : AppTheme.light(accentColor).colorScheme;
-              final darkScheme = useAndroidDynamic
-                  ? (effectiveDarkDynamic ?? AppTheme.dark(accentColor).colorScheme)
-                  : AppTheme.dark(accentColor).colorScheme;
+              if (useDynamic) {
+                // .harmonized() nudges the app's own palette (error, etc.)
+                // toward the dynamic hue so nothing clashes — matches how
+                // Android's own Settings/first-party apps blend Material You.
+                lightScheme = lightDynamic!.harmonized();
+                darkScheme = (darkDynamic ??
+                        ColorScheme.fromSeed(
+                            seedColor: _seedColorForScheme(settings.accentColor),
+                            brightness: Brightness.dark))
+                    .harmonized();
+              } else if (useDesktopSystemAccent) {
+                final seed = _seedColorForScheme(SystemTheme.accentColor.accent);
+                lightScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
+                darkScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark);
+              } else {
+                final seed = _seedColorForScheme(settings.accentColor);
+                lightScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
+                darkScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark);
+              }
 
               return MaterialApp(
                 title: 'XScore',
                 debugShowCheckedModeBanner: false,
-                theme: AppTheme.light(accentColor).copyWith(colorScheme: lightScheme),
-                darkTheme: AppTheme.dark(accentColor).copyWith(colorScheme: darkScheme),
+                theme: AppTheme.light(settings.accentColor).copyWith(colorScheme: lightScheme),
+                darkTheme: AppTheme.dark(settings.accentColor).copyWith(colorScheme: darkScheme),
                 themeMode: settings.themeMode,
                 locale: settings.locale,
                 supportedLocales: AppLocalizations.supportedLocales,

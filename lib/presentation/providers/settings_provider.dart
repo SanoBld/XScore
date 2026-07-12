@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:system_theme/system_theme.dart';
 import '../../core/constants/storage_keys.dart';
 import '../../data/services/cache_service.dart';
 
@@ -56,20 +55,13 @@ class SettingsProvider extends ChangeNotifier {
   bool get supportsSystemAccent =>
       !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isAndroid);
 
-  // system_theme only knows how to read Windows/macOS — calling it on
-  // Android silently returns its own generic default (a blue), which is
-  // exactly the "always stuck on blue" bug: supportsSystemAccent covers
-  // Android too (for the UI toggle), but the *actual* Android reading
-  // happens via dynamic_color/DynamicColorBuilder in main.dart, which
-  // bypasses this getter entirely. So this getter must stay Windows/macOS
-  // only, and just return a sane preset fallback on Android — main.dart
-  // is what substitutes the real Material You color at theme-build time.
-  Color get accentColor {
-    if (useSystemAccent && !kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
-      return SystemTheme.accentColor.accent;
-    }
-    return _accentColor ?? accentPresets.first;
-  }
+  // Manual preset only — the "effective" accent (system/dynamic vs manual)
+  // is now resolved entirely in main.dart, which is the single place that
+  // decides light/dark ColorScheme. Having this getter also reach into
+  // SystemTheme was the actual bug: on Android it silently returned
+  // system_theme's own hardcoded fallback (a blue), since that package has
+  // no real Android support at all.
+  Color get accentColor => _accentColor ?? accentPresets.first;
 
   // Load persisted settings at startup
   Future<void> init() async {

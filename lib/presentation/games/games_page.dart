@@ -236,71 +236,103 @@ class _GamesGrid extends StatelessWidget {
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => GameDetailPage(title: g)),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                g.boxArtUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: g.boxArtUrl!,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) =>
-                            Container(color: scheme.surfaceContainerHigh),
-                      )
-                    : Container(
-                        color: scheme.surfaceContainerHigh,
-                        child: const Icon(Icons.videogame_asset),
-                      ),
-                // Darken the art so a white, left-aligned title stays
-                // readable regardless of the cover's own colors — poster
-                // grids read better with the label baked over the image
-                // than as separate text underneath it.
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black87],
-                      stops: [0.5, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 8,
-                  right: 8,
-                  bottom: 8,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        g.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.left,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          height: 1.15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: (g.progressPercentage / 100).clamp(0, 1),
-                          minHeight: 4,
-                          backgroundColor: Colors.white24,
-                          color: g.progressPercentage >= 100 ? Colors.amber : scheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  g.boxArtUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: g.boxArtUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) =>
+                              Container(color: scheme.surfaceContainerHigh),
+                        )
+                      : Container(
+                          color: scheme.surfaceContainerHigh,
+                          child: const Icon(Icons.videogame_asset),
+                        ),
+                  // Darken the art so a white, left-aligned title stays
+                  // readable regardless of the cover's own colors — poster
+                  // grids read better with the label baked over the image
+                  // than as separate text underneath it. Two stops instead
+                  // of one gives a softer, more premium falloff.
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black54,
+                          Colors.black87,
+                        ],
+                        stops: [0.0, 0.45, 0.75, 1.0],
+                      ),
+                    ),
+                  ),
+                  if (g.progressPercentage >= 100)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.amber,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, size: 12, color: Colors.black),
+                      ),
+                    ),
+                  Positioned(
+                    left: 8,
+                    right: 8,
+                    bottom: 8,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          g.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.15,
+                            shadows: [Shadow(blurRadius: 4, color: Colors.black87)],
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (g.progressPercentage / 100).clamp(0, 1),
+                            minHeight: 3.5,
+                            backgroundColor: Colors.white24,
+                            color: g.progressPercentage >= 100 ? Colors.amber : scheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                ),
+              ],
+            ),
+          ),
           ),
         );
       },
